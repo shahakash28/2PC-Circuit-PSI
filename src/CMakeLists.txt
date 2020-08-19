@@ -13,7 +13,7 @@ if (NOT NTL_LIB)
 endif ()
 
 add_library(src
-        common/psi_analytics.cpp
+        common/functionalities.cpp
         common/helpers.cpp
         polynomials/Mersenne.cpp
         polynomials/Poly.cpp

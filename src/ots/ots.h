@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "common/psi_analytics_context.h"
+#include "common/config.h"
 #include "common/constants.h"
 
 namespace ENCRYPTO {

@@ -33,7 +33,7 @@
 #include "libOTe/NChooseOne/Kkrt/KkrtNcoOtSender.h"
 
 #include "common/constants.h"
-#include "common/psi_analytics_context.h"
+#include "common/config.h"
 
 using milliseconds_ratio = std::ratio<1, 1000>;
 using duration_millis = std::chrono::duration<double, milliseconds_ratio>;

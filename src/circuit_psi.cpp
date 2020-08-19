@@ -17,8 +17,8 @@
 #include <ENCRYPTO_utils/parse_options.h>
 #include "abycore/aby/abyparty.h"
 
-#include "common/psi_analytics.h"
-#include "common/psi_analytics_context.h"
+#include "common/functionalities.h"
+#include "common/config.h"
 
 auto read_test_options(int32_t argcp, char **argvp) {
   namespace po = boost::program_options;
