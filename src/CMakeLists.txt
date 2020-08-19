@@ -59,12 +59,12 @@ target_include_directories(src PUBLIC
         )
 
 if (PSI_ANALYTICS_BUILD_EXAMPLE)
-    add_executable(src_example psi_analytics_example.cpp)
+    add_executable(gcf_psi circuit_psi.cpp)
 
-    target_link_libraries(src_example PUBLIC
+    target_link_libraries(gcf_psi PUBLIC
             src
             )
-    set_target_properties(src_example
+    set_target_properties(gcf_psi
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif (PSI_ANALYTICS_BUILD_EXAMPLE)
