@@ -38,6 +38,9 @@ struct PsiAnalyticsContext {
   uint64_t polynomialbytelength;
   uint64_t nmegabins;
   double epsilon;
+  uint64_t ffuns;
+  uint64_t fbins;
+  double fepsilon;
   std::string address;
 
   enum {

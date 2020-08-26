@@ -25,7 +25,7 @@
 #include "abycore/aby/abyparty.h"
 #include "abycore/circuit/share.h"
 #include "helpers.h"
-#include "psi_analytics_context.h"
+#include "config.h"
 
 #include <vector>
 
