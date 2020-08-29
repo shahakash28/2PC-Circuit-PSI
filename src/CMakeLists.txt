@@ -40,7 +40,6 @@ target_link_libraries(src INTERFACE
         ntl
         HashingTables
         libOTe
-        SCI-OT
         Boost::program_options
         Threads::Threads
         # relic is a transitive dependency of libOTe right now
@@ -56,7 +55,6 @@ target_include_directories(src PUBLIC
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/ABY/src
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/ABY/extern/ENCRYPTO_utils/src
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/HashingTables
-        ${PSI_ANALYTICS_SOURCE_ROOT}/extern/EzPC/SCI/src
         ${GLIB_INCLUDE_DIRS}
         )
 

@@ -64,10 +64,9 @@ using duration_millis = std::chrono::duration<double, milliseconds_ratio>;
 uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context) {
   // establish network connection
   std::unique_ptr<CSocket> sock =
-      EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
-  sock->Close();
+    EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
+sock->Close();
   const auto clock_time_total_start = std::chrono::system_clock::now();
-
   // create hash tables from the elements
   std::vector<uint64_t> bins;
   if (context.role == CLIENT) {
@@ -75,6 +74,10 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
   } else {
     bins = OpprgPsiServer(inputs, context);
   }
+
+  const auto clock_time_total_end = std::chrono::system_clock::now();
+  const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
+  context.timings.total = total_duration.count();
 
   /*
 
@@ -202,15 +205,18 @@ std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
   }
   std::cout<<"]"<<std::endl;
   std::cout<<"***********************************"<<std::endl;*/
-  const auto filter_start_time = std::chrono::system_clock::now();
+
   std::vector<uint64_t> garbled_cuckoo_filter;
   garbled_cuckoo_filter.reserve(context.fbins);
   std::unique_ptr<CSocket> sock =
       EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
-
+  const auto ftrans_start_time = std::chrono::system_clock::now();
   sock->Receive(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
   sock->Close();
-
+  const auto ftrans_end_time = std::chrono::system_clock::now();
+  const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
+  context.timings.polynomials_transmission = polynomial_trans.count();
+  const auto filter_start_time = std::chrono::system_clock::now();
   /*std::cout<<"***********************************"<<std::endl;
   std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
   for(int i=0;i<context.fbins;i++) {
@@ -425,6 +431,9 @@ std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
       garbled_cuckoo_filter[i] = prngo.get<uint64_t>();
     }
   }
+  const auto filter_end_time = std::chrono::system_clock::now();
+  const duration_millis polynomial_duration = filter_end_time - filter_start_time;
+  context.timings.polynomials = polynomial_duration.count();
 
   /*std::cout<<"***********************************"<<std::endl;
   std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
@@ -436,18 +445,20 @@ std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
 
   std::unique_ptr<CSocket> sock =
       EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
-
+  const auto ftrans_start_time = std::chrono::system_clock::now();
   sock->Send(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
-  sock->Close();
-  const auto filter_end_time = std::chrono::system_clock::now();
-  const duration_millis polynomial_duration = filter_end_time - filter_start_time;
-  context.timings.polynomials = polynomial_duration.count();
+  const auto ftrans_end_time = std::chrono::system_clock::now();
+  const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
+  context.timings.polynomials_transmission = polynomial_trans.count();
 
+
+  sock->Close();
   return content_of_bins;
 }
 
 std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_t port,
                                              e_role role) {
+  std::cout<<"EstablishConnection Started" << std::endl;
   std::unique_ptr<CSocket> socket;
   if (role == SERVER) {
     socket = Listen(address.c_str(), port);
@@ -455,6 +466,7 @@ std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_
     socket = Connect(address.c_str(), port);
   }
   assert(socket);
+  std::cout<<"EstablishConnection Successful" << std::endl;
   return socket;
 }
 
