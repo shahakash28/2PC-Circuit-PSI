@@ -24,26 +24,16 @@
 
 #include "ots.h"
 
-#include "cryptoTools/Network/Channel.h"
-#include "cryptoTools/Network/IOService.h"
-#include "cryptoTools/Network/Session.h"
-
-#include "libOTe/Base/BaseOT.h"
-#include "libOTe/NChooseOne/Kkrt/KkrtNcoOtReceiver.h"
-#include "libOTe/NChooseOne/Kkrt/KkrtNcoOtSender.h"
-
 #include "common/constants.h"
-#include "common/psi_analytics_context.h"
+#include "common/config.h"
 
 using milliseconds_ratio = std::ratio<1, 1000>;
 using duration_millis = std::chrono::duration<double, milliseconds_ratio>;
 
 namespace ENCRYPTO {
 // Client
-std::vector<std::uint64_t> ot_receiver(const std::vector<std::uint64_t> &inputs,
+std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs,
                                        ENCRYPTO::PsiAnalyticsContext &context) {
-  std::vector<std::uint64_t> outputs;
-  outputs.reserve(inputs.size());
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
 
@@ -93,10 +83,6 @@ std::vector<std::uint64_t> ot_receiver(const std::vector<std::uint64_t> &inputs,
 
   recv.sendCorrection(recvChl, numOTs);
 
-  for (auto k = 0ull; k < numOTs; ++k) {
-    // copy only part of the encoding
-    outputs.push_back(reinterpret_cast<uint64_t *>(&receiver_encoding.at(k))[0] &= __61_bit_mask);
-  }
   const auto OPRF_end_time = std::chrono::system_clock::now();
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
@@ -105,17 +91,15 @@ std::vector<std::uint64_t> ot_receiver(const std::vector<std::uint64_t> &inputs,
   ep.stop();
   ios.stop();
 
-  return outputs;
+  return receiver_encoding;
 }
 
 // Server
-std::vector<std::vector<std::uint64_t>> ot_sender(
+std::vector<std::vector<osuCrypto::block>> ot_sender(
     const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context) {
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253465, 3434565, 234435, 23987025));
   osuCrypto::KkrtNcoOtSender sender;
-  std::vector<std::vector<std::uint64_t>> outputs(inputs.size());
-
   // get up the parameters and get some information back.
   //  1) false = semi-honest
   //  2) 40  =  statistical security param.
@@ -163,12 +147,6 @@ std::vector<std::vector<std::uint64_t>> ot_sender(
     }
   }
 
-  for (auto i = 0ull; i < numOTs; ++i) {
-    for (auto &encoding : outputs_as_blocks.at(i)) {
-      outputs.at(i).push_back(reinterpret_cast<uint64_t *>(&encoding)[0] &= __61_bit_mask);
-    }
-  }
-
   const auto OPRF_end_time = std::chrono::system_clock::now();
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
@@ -176,7 +154,7 @@ std::vector<std::vector<std::uint64_t>> ot_sender(
   sendChl.close();
   ep.stop();
   ios.stop();
-  return outputs;
+  return outputs_as_blocks;
 }
 
 }

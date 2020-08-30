@@ -12,26 +12,26 @@ if (NOT NTL_LIB)
     message(FATAL_ERROR "ntl library not found.  Rerun cmake with -DCMAKE_PREFIX_PATH=\"<path to lib1>;<path to lib2>\"")
 endif ()
 
-add_library(psi_analytics_eurocrypt19
-        common/psi_analytics.cpp
+add_library(src
+        common/functionalities.cpp
         common/helpers.cpp
         polynomials/Mersenne.cpp
         polynomials/Poly.cpp
         ots/ots.cpp
         )
-        
-set_target_properties(psi_analytics_eurocrypt19
+
+set_target_properties(src
         PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         )
 
-target_compile_options(psi_analytics_eurocrypt19
+target_compile_options(src
         PRIVATE
         -march=native
         -ffunction-sections -mpclmul -mbmi2 -maes
         -mavx -msse2 -msse3 -msse4.1
         -Wall -Wno-strict-overflow -Wno-ignored-attributes -Wno-parentheses)
 
-target_link_libraries(psi_analytics_eurocrypt19 INTERFACE
+target_link_libraries(src INTERFACE
         ABY::aby
         ENCRYPTO_utils::encrypto_utils
         ${GLIB_LDFLAGS}
@@ -47,8 +47,8 @@ target_link_libraries(psi_analytics_eurocrypt19 INTERFACE
         relic_s
         )
 
-target_include_directories(psi_analytics_eurocrypt19 PUBLIC
-        ${PSI_ANALYTICS_SOURCE_ROOT}/psi_analytics_eurocrypt19
+target_include_directories(src PUBLIC
+        ${PSI_ANALYTICS_SOURCE_ROOT}/src
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/libOTe/cryptoTools
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/libOTe
@@ -59,12 +59,12 @@ target_include_directories(psi_analytics_eurocrypt19 PUBLIC
         )
 
 if (PSI_ANALYTICS_BUILD_EXAMPLE)
-    add_executable(psi_analytics_eurocrypt19_example psi_analytics_example.cpp)
+    add_executable(gcf_psi circuit_psi.cpp)
 
-    target_link_libraries(psi_analytics_eurocrypt19_example PUBLIC
-            psi_analytics_eurocrypt19
+    target_link_libraries(gcf_psi PUBLIC
+            src
             )
-    set_target_properties(psi_analytics_eurocrypt19_example
+    set_target_properties(gcf_psi
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif (PSI_ANALYTICS_BUILD_EXAMPLE)
