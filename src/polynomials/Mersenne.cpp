@@ -25,7 +25,7 @@
 // SOFTWARE.
 
 #include "Mersenne.h"
-
+#include<cstring>
 template <>
 ZpMersenneIntElement TemplateField<ZpMersenneIntElement>::GetElement(long b) {
   if (b == 1) {

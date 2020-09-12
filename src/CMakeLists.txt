@@ -55,6 +55,7 @@ target_include_directories(src PUBLIC
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/ABY/src
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/ABY/extern/ENCRYPTO_utils/src
         ${PSI_ANALYTICS_SOURCE_ROOT}/extern/HashingTables
+        ${PSI_ANALYTICS_SOURCE_ROOT}/extern/EzPC/SCI/src
         ${GLIB_INCLUDE_DIRS}
         )
 

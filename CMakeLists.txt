@@ -80,7 +80,7 @@ elseif (NOT libOTe_FOUND AND NOT TARGET libOTe::libote)
     add_subdirectory(extern/libOTe)
 endif ()
 
-
 add_dependencies(libOTe relic_s)
 
+add_subdirectory(extern/EzPC/SCI)
 add_subdirectory(src)

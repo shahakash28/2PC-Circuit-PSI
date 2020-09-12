@@ -98,16 +98,16 @@ auto read_test_options(int32_t argcp, char **argvp) {
 int main(int argc, char **argv) {
   auto context = read_test_options(argc, argv);
   auto gen_bitlen = static_cast<std::size_t>(std::ceil(std::log2(context.neles))) + 3;
-  //std::vector<uint64_t> inputs;
-  /*if(context.role == CLIENT) {
-    for(int i=0;i<100;i++){
+  std::vector<uint64_t> inputs;
+  if(context.role == CLIENT) {
+    for(int i=0;i<context.neles;i++){
       inputs.push_back(1000*i);
     }
   } else {
-    for(int i=0;i<100;i++){
+    for(int i=0;i<context.neles;i++){
       inputs.push_back(2000*i);
     }
-  }*/
+  }
   /*std::cout<<"***********************************"<<std::endl;
   std::cout<<"The Input is: ["<<std::endl;
   for(int i=0;i<100;i++) {
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   std::cout<<"***********************************"<<std::endl;*/
 
 
-  auto inputs = ENCRYPTO::GeneratePseudoRandomElements(context.neles, gen_bitlen);
+  //auto inputs = ENCRYPTO::GeneratePseudoRandomElements(context.neles, gen_bitlen);
   ENCRYPTO::run_psi_analytics(inputs, context);
   std::cout << "PSI circuit successfully executed" << std::endl;
   PrintTimings(context);

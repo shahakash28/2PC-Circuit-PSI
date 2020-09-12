@@ -36,7 +36,7 @@
 #include "HashingTables/common/hashing.h"
 #include "HashingTables/simple_hashing/simple_hashing.h"
 #include "config.h"
-
+#include "EzPC/SCI/src/Millionaire/batch_equality_split.h"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -54,6 +54,8 @@ struct hashlocmap {
   int index;
 };
 
+std::vector<uint64_t> content_of_bins;
+
 namespace ENCRYPTO {
 
 using share_ptr = std::shared_ptr<share>;
@@ -65,19 +67,60 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
   // establish network connection
   std::unique_ptr<CSocket> sock =
     EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
-sock->Close();
+  sock->Close();
   const auto clock_time_total_start = std::chrono::system_clock::now();
   // create hash tables from the elements
-  std::vector<uint64_t> bins;
-  if (context.role == CLIENT) {
-    bins = OpprgPsiClient(inputs, context);
+  int num_cmps, rmdr;
+  rmdr = context.nbins % 8;
+  num_cmps = context.nbins + rmdr;
+  int pad;
+  uint64_t value;
+  if(context.role == 0) {
+    pad = rmdr;
+    value = S_CONST;
   } else {
-    bins = OpprgPsiServer(inputs, context);
+    pad = 3*rmdr;
+    value = C_CONST;
   }
 
+  if (context.role == CLIENT) {
+    content_of_bins.reserve(3*num_cmps);
+    OpprgPsiClient(inputs, context);
+  } else {
+    content_of_bins.reserve(num_cmps);
+    OpprgPsiServer(inputs, context);
+  }
+
+  int party=1;
+  if(context.role == 0) {
+    party=2;
+  }
+
+  uint8_t* res_shares;
+  const auto clock_time_cir_start = std::chrono::system_clock::now();
+  if(context.role == CLIENT) {
+    for(int i=0; i<pad; i++) {
+      content_of_bins[3*context.nbins+i]=value;
+    }
+  } else {
+    for(int i=0; i<pad; i++) {
+      content_of_bins[context.nbins+i]=value;
+    }
+  }
+  perform_batch_equality(content_of_bins.data(), party, num_cmps, 3, context.address, context.port, res_shares);
+
+
+  /*for(int i=0; i<context.nbins; i++) {
+      for(int i)
+  }*/
+  const auto clock_time_cir_end = std::chrono::system_clock::now();
+  const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
+  context.timings.aby_total = cir_duration.count();
   const auto clock_time_total_end = std::chrono::system_clock::now();
   const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
   context.timings.total = total_duration.count();
+
+
 
   /*
 
@@ -93,18 +136,18 @@ sock->Close();
 
   // share inputs in ABY
   if (context.role == SERVER) {
-    s_in_server = share_ptr(bc->PutSIMDINGate(bins.size(), bins.data(), context.maxbitlen, SERVER));
-    s_in_client = share_ptr(bc->PutDummySIMDINGate(bins.size(), context.maxbitlen));
+    s_in_server = share_ptr(bc->PutSIMDINGate(content_of_bins.size(), content_of_bins.data(), context.maxbitlen, SERVER));
+    s_in_client = share_ptr(bc->PutDummySIMDINGate(content_of_bins.size(), context.maxbitlen));
   } else {
-    s_in_server = share_ptr(bc->PutDummySIMDINGate(bins.size(), context.maxbitlen));
-    s_in_client = share_ptr(bc->PutSIMDINGate(bins.size(), bins.data(), context.maxbitlen, CLIENT));
+    s_in_server = share_ptr(bc->PutDummySIMDINGate(content_of_bins.size(), context.maxbitlen));
+    s_in_client = share_ptr(bc->PutSIMDINGate(content_of_bins.size(), content_of_bins.data(), context.maxbitlen, CLIENT));
   }
 
   // compare outputs of OPPRFs for each bin in ABY (using SIMD)
   auto s_eq = share_ptr(bc->PutEQGate(s_in_server.get(), s_in_client.get()));
 
   std::vector<share_ptr> bin_results;
-  for (uint32_t i = 0; i < bins.size(); ++i) {
+  for (uint32_t i = 0; i < content_of_bins.size(); ++i) {
     uint32_t pos[] = {i};
     bin_results.emplace_back(bc->PutSubsetGate(s_eq.get(), pos, 1));
     bin_results.at(i) = share_ptr(bc->PutOUTGate(bin_results.at(i).get(), ALL));
@@ -158,7 +201,7 @@ sock->Close();
   return output;
 }
 
-std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
+void OpprgPsiClient(const std::vector<uint64_t> &elements,
                                      PsiAnalyticsContext &context) {
   const auto start_time = std::chrono::system_clock::now();
   const auto hashing_start_time = std::chrono::system_clock::now();
@@ -172,6 +215,15 @@ std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
   if (cuckoo_table.GetStashSize() > 0u) {
     std::cerr << "[Error] Stash of size " << cuckoo_table.GetStashSize() << " occured\n";
   }
+
+  /*ofstream file1 ("cuckoo_table_contents", ios::out);
+  std::cout<<"Cuckoo Hash Table"<<std::endl;
+  for(int i=0; i<context.nbins; i++){
+    std::cout << cuckoo_table.hash_table_.at(i).GetElement() <<std::endl;
+    file1 << cuckoo_table.hash_table_.at(i).GetElement();
+    file1 << " ";
+  }
+  file1.close();*/
 
   auto cuckoo_table_v = cuckoo_table.AsRawVector();
 
@@ -241,8 +293,6 @@ std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
   std::cout<<"]"<<std::endl;
   std::cout<<"***********************************"<<std::endl;*/
 
-  std::vector<uint64_t> content_of_bins;
-  content_of_bins.reserve(context.nbins*context.ffuns);
   for(int i=0; i<context.nbins; i++) {
     osuCrypto::PRNG prngo(masks_with_dummies[i], 2);
     for(int j=0; j< context.ffuns; j++) {
@@ -314,11 +364,10 @@ std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
   const auto filter_end_time = std::chrono::system_clock::now();
   const duration_millis polynomial_duration = filter_end_time - filter_start_time;
   context.timings.polynomials = polynomial_duration.count();
-  std::vector<uint64_t> raw_bin_result;
-  return raw_bin_result;
+  //return content_of_bins;
 }
 
-std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
+void OpprgPsiServer(const std::vector<uint64_t> &elements,
                                      PsiAnalyticsContext &context) {
   const auto start_time = std::chrono::system_clock::now();
 
@@ -361,7 +410,6 @@ std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
   uint64_t bufferlength = (uint64_t)ceil(context.nbins/2.0);
   osuCrypto::PRNG prng(osuCrypto::sysRandomSeed(), bufferlength);
 
-  std::vector<uint64_t> content_of_bins(context.nbins);
   for( int i=0; i<context.nbins; i++) {
     content_of_bins[i] = prng.get<uint64_t>();
   }
@@ -453,12 +501,12 @@ std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
 
 
   sock->Close();
-  return content_of_bins;
+  //return content_of_bins;
 }
 
 std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_t port,
                                              e_role role) {
-  std::cout<<"EstablishConnection Started" << std::endl;
+  //std::cout<<"EstablishConnection Started" << std::endl;
   std::unique_ptr<CSocket> socket;
   if (role == SERVER) {
     socket = Listen(address.c_str(), port);
@@ -466,7 +514,7 @@ std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_
     socket = Connect(address.c_str(), port);
   }
   assert(socket);
-  std::cout<<"EstablishConnection Successful" << std::endl;
+  //std::cout<<"EstablishConnection Successful" << std::endl;
   return socket;
 }
 

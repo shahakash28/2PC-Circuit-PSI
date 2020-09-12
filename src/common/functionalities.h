@@ -29,14 +29,16 @@
 
 #include <vector>
 
+#define C_CONST 8459320670953116686
+#define S_CONST 18286333650295995643
 namespace ENCRYPTO {
 
 uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
 
-std::vector<uint64_t> OpprgPsiClient(const std::vector<uint64_t> &elements,
+void OpprgPsiClient(const std::vector<uint64_t> &elements,
                                      PsiAnalyticsContext &context);
 
-std::vector<uint64_t> OpprgPsiServer(const std::vector<uint64_t> &elements,
+void OpprgPsiServer(const std::vector<uint64_t> &elements,
                                      PsiAnalyticsContext &context);
 
 void InterpolatePolynomials(std::vector<uint64_t> &polynomials,
