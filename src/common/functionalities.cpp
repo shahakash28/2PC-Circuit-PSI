@@ -106,38 +106,175 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
   if (context.role == CLIENT) {
     content_of_bins.reserve(3*num_cmps);
     OpprgPsiClient(inputs, context);
+    uint8_t* res_shares;
+    const auto clock_time_cir_start = std::chrono::system_clock::now();
+      for(int i=0; i<pad; i++) {
+        content_of_bins[3*context.nbins+i]=value;
+      }
+      perform_batch_equality(content_of_bins.data(), compare, res_shares);
+      const auto clock_time_cir_end = std::chrono::system_clock::now();
+      const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
+      context.timings.aby_total = cir_duration.count();
+      const auto clock_time_total_end = std::chrono::system_clock::now();
+      const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
+      context.timings.total = total_duration.count();
   } else {
     content_of_bins.reserve(num_cmps);
-    OpprgPsiServer(inputs, context);
+    //OpprgPsiServer(inputs, context);
+    const auto start_time = std::chrono::system_clock::now();
+
+    const auto hashing_start_time = std::chrono::system_clock::now();
+
+    ENCRYPTO::SimpleTable simple_table(static_cast<std::size_t>(context.nbins));
+    simple_table.SetNumOfHashFunctions(context.nfuns);
+    simple_table.Insert(inputs);
+    simple_table.MapElements();
+    //simple_table.Print();
+
+    auto simple_table_v = simple_table.AsRaw2DVector();
+    // context.simple_table = simple_table_v;
+
+    const auto hashing_end_time = std::chrono::system_clock::now();
+    const duration_millis hashing_duration = hashing_end_time - hashing_start_time;
+    context.timings.hashing = hashing_duration.count();
+
+    const auto oprf_start_time = std::chrono::system_clock::now();
+
+    auto masks = ot_sender(simple_table_v, context);
+
+    const auto oprf_end_time = std::chrono::system_clock::now();
+    const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
+    context.timings.oprf = oprf_duration.count();
+
+    /*std::cout<<"Size of Hash Table:"<< context.nbins <<std::endl;
+
+    std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The OPRF outputs are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      uint64_t size = masks[i].size();
+      for(int j=0;j<size;j++) {
+        std::cout<<"( "<<i<<", "<<masks[i][j]<<"), ";
+      }
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+   const auto filter_start_time = std::chrono::system_clock::now();
+    uint64_t bufferlength = (uint64_t)ceil(context.nbins/2.0);
+    osuCrypto::PRNG prng(osuCrypto::sysRandomSeed(), bufferlength);
+
+    for( int i=0; i<context.nbins; i++) {
+      content_of_bins[i] = prng.get<uint64_t>();
+    }
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The Bin Random Values are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      std::cout<<"( "<<i<<", "<<content_of_bins[i]<<"), ";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    std::unordered_map<uint64_t,hashlocmap> tloc;
+    std::vector<uint64_t> filterinputs;
+    for(int i=0; i<context.nbins; i++) {
+      int binsize = simple_table_v[i].size();
+      for(int j=0; j<binsize; j++) {
+        tloc[simple_table_v[i][j]].bin = i;
+        tloc[simple_table_v[i][j]].index = j;
+        filterinputs.push_back(simple_table_v[i][j]);
+      }
+    }
+
+    ENCRYPTO::CuckooTable cuckoo_table(static_cast<std::size_t>(context.fbins));
+    cuckoo_table.SetNumOfHashFunctions(context.ffuns);
+    cuckoo_table.Insert(filterinputs);
+    cuckoo_table.MapElements();
+    //cuckoo_table.Print();
+
+    if (cuckoo_table.GetStashSize() > 0u) {
+      std::cerr << "[Error] Stash of size " << cuckoo_table.GetStashSize() << " occured\n";
+    }
+
+    std::vector<uint64_t> garbled_cuckoo_filter;
+    garbled_cuckoo_filter.reserve(context.fbins);
+
+    bufferlength = (uint64_t)ceil(context.fbins - 3*context.nbins);
+    osuCrypto::PRNG prngo(osuCrypto::sysRandomSeed(), bufferlength);
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The 3-OPRF outputs are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      uint64_t size = masks[i].size();
+      for(int j=0;j<size;j++) {
+        osuCrypto::PRNG prng(masks[i][j], 2);
+        for(int k=0;k<3;k++){
+            std::cout<<"( "<<i<<"-"<< j<<"-"<< k <<", "<<prng.get<uint64_t>()<<"), ";
+        }
+        std::cout<<"\n";
+      }
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    for(int i=0; i<context.fbins; i++){
+      if(!cuckoo_table.hash_table_.at(i).IsEmpty()) {
+        uint64_t element = cuckoo_table.hash_table_.at(i).GetElement();
+        uint64_t function_id = cuckoo_table.hash_table_.at(i).GetCurrentFunctinId();
+        hashlocmap hlm = tloc[element];
+        osuCrypto::PRNG prng(masks[hlm.bin][hlm.index], 2);
+        uint64_t pad = 0u;
+        for(int j=0;j<=function_id;j++) {
+           pad = prng.get<uint64_t>();
+        }
+        garbled_cuckoo_filter[i] = content_of_bins[hlm.bin] ^ pad;
+      } else {
+        garbled_cuckoo_filter[i] = prngo.get<uint64_t>();
+      }
+    }
+    const auto filter_end_time = std::chrono::system_clock::now();
+    const duration_millis polynomial_duration = filter_end_time - filter_start_time;
+    context.timings.polynomials = polynomial_duration.count();
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
+    for(int i=0;i<context.fbins;i++) {
+      std::cout<<"( "<<i<<", "<<garbled_cuckoo_filter[i]<<"), ";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    std::unique_ptr<CSocket> sock =
+        EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
+    const auto ftrans_start_time = std::chrono::system_clock::now();
+    std::cout<<"Hint Size: "<< context.fbins * sizeof(uint64_t)<< endl;
+    sock->Send(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
+    const auto ftrans_end_time = std::chrono::system_clock::now();
+    const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
+    context.timings.polynomials_transmission = polynomial_trans.count();
+    sock->Close();
+
+    uint8_t* res_shares;
+    const auto clock_time_cir_start = std::chrono::system_clock::now();
+      for(int i=0; i<pad; i++) {
+        content_of_bins[context.nbins+i]=value;
+      }
+
+    perform_batch_equality(content_of_bins.data(), compare, res_shares);
+    const auto clock_time_cir_end = std::chrono::system_clock::now();
+    const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
+    context.timings.aby_total = cir_duration.count();
+    const auto clock_time_total_end = std::chrono::system_clock::now();
+    const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
+    context.timings.total = total_duration.count();
+
   }
 
-  uint8_t* res_shares;
-  const auto clock_time_cir_start = std::chrono::system_clock::now();
-  if(context.role == CLIENT) {
-    for(int i=0; i<pad; i++) {
-      content_of_bins[3*context.nbins+i]=value;
-    }
-  } else {
-    for(int i=0; i<pad; i++) {
-      content_of_bins[context.nbins+i]=value;
-    }
-  }
 
-  perform_batch_equality(content_of_bins.data(), compare, res_shares);
 
 
   /*for(int i=0; i<context.nbins; i++) {
       for(int i)
   }*/
-  const auto clock_time_cir_end = std::chrono::system_clock::now();
-  const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
-  context.timings.aby_total = cir_duration.count();
-  const auto clock_time_total_end = std::chrono::system_clock::now();
-  const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
-  context.timings.total = total_duration.count();
-
-
-
   /*
 
   // instantiate ABY
