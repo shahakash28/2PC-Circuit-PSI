@@ -105,7 +105,169 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
 
   if (context.role == CLIENT) {
     content_of_bins.reserve(3*num_cmps);
-    OpprgPsiClient(inputs, context);
+    //OpprgPsiClient(inputs, context);
+    const auto start_time = std::chrono::system_clock::now();
+    const auto hashing_start_time = std::chrono::system_clock::now();
+
+    ENCRYPTO::CuckooTable cuckoo_table(static_cast<std::size_t>(context.nbins));
+    cuckoo_table.SetNumOfHashFunctions(context.nfuns);
+    cuckoo_table.Insert(inputs);
+    cuckoo_table.MapElements();
+    //cuckoo_table.Print();
+
+    if (cuckoo_table.GetStashSize() > 0u) {
+      std::cerr << "[Error] Stash of size " << cuckoo_table.GetStashSize() << " occured\n";
+    }
+
+    /*ofstream file1 ("cuckoo_table_contents", ios::out);
+    std::cout<<"Cuckoo Hash Table"<<std::endl;
+    for(int i=0; i<context.nbins; i++){
+      std::cout << cuckoo_table.hash_table_.at(i).GetElement() <<std::endl;
+      file1 << cuckoo_table.hash_table_.at(i).GetElement();
+      file1 << " ";
+    }
+    file1.close();*/
+
+    auto cuckoo_table_v = cuckoo_table.AsRawVector();
+
+    const auto hashing_end_time = std::chrono::system_clock::now();
+    const duration_millis hashing_duration = hashing_end_time - hashing_start_time;
+    context.timings.hashing = hashing_duration.count();
+    const auto oprf_start_time = std::chrono::system_clock::now();
+
+    auto masks_with_dummies = ot_receiver(cuckoo_table_v, context);
+
+    const auto oprf_end_time = std::chrono::system_clock::now();
+    const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
+    context.timings.oprf = oprf_duration.count();
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The OPRF outputs are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      std::cout<<"( "<<i<<", "<<masks_with_dummies[i]<<"), ";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;
+    */
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The 3-OPRF outputs are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      osuCrypto::PRNG prng(masks_with_dummies[i], 2);
+      for(int j=0;j<3;j++) {
+            std::cout<<"( "<<i<<"-"<< j<<", "<<prng.get<uint64_t>()<<"), ";
+      }
+        std::cout<<"\n";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    std::vector<uint64_t> garbled_cuckoo_filter;
+    garbled_cuckoo_filter.reserve(context.fbins);
+    std::unique_ptr<CSocket> sock =
+        EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
+    const auto ftrans_start_time = std::chrono::system_clock::now();
+    sock->Receive(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
+    sock->Close();
+    const auto ftrans_end_time = std::chrono::system_clock::now();
+    const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
+    context.timings.polynomials_transmission = polynomial_trans.count();
+    const auto filter_start_time = std::chrono::system_clock::now();
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
+    for(int i=0;i<context.fbins;i++) {
+      std::cout<<"( "<<i<<", "<<garbled_cuckoo_filter[i]<<"), ";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    ENCRYPTO::CuckooTable garbled_cuckoo_table(static_cast<std::size_t>(context.fbins));
+    garbled_cuckoo_table.SetNumOfHashFunctions(context.ffuns);
+    garbled_cuckoo_table.Insert(cuckoo_table_v);
+    auto addresses = garbled_cuckoo_table.GetElementAddresses();
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The Addresses are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      for(int j=0;j<context.ffuns;j++) {
+        std::cout<<"( "<<i<<"-"<<j<<", "<<addresses[i*context.ffuns+j]<<"), ";
+      }
+      std::cout<<"\n";
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+
+    for(int i=0; i<context.nbins; i++) {
+      osuCrypto::PRNG prngo(masks_with_dummies[i], 2);
+      for(int j=0; j< context.ffuns; j++) {
+        content_of_bins[i*context.ffuns + j]=garbled_cuckoo_filter[addresses[i*context.ffuns+j]] ^ prngo.get<uint64_t>();
+      }
+    }
+
+    /*std::cout<<"***********************************"<<std::endl;
+    std::cout<<"The Contents of Bins are: ["<<std::endl;
+    for(int i=0;i<context.nbins;i++) {
+      for(int j=0;j<context.ffuns;j++) {
+        std::cout<<"( "<<i<<", "<<content_of_bins[i*context.ffuns+j]<<"), ";
+      }
+    }
+    std::cout<<"]"<<std::endl;
+    std::cout<<"***********************************"<<std::endl;*/
+    /*
+    std::unique_ptr<CSocket> sock =
+        EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
+
+    const auto nbinsinmegabin = ceil_divide(context.nbins, context.nmegabins);
+    std::vector<std::vector<ZpMersenneLongElement>> polynomials(context.nmegabins);
+    std::vector<ZpMersenneLongElement> X(context.nbins), Y(context.nbins);
+    for (auto &polynomial : polynomials) {
+      polynomial.resize(context.polynomialsize);
+    }
+
+    for (auto i = 0ull; i < X.size(); ++i) {
+      X.at(i).elem = masks_with_dummies.at(i);
+    }
+
+    std::vector<uint8_t> poly_rcv_buffer(context.nmegabins * context.polynomialbytelength, 0);
+
+    const auto receiving_start_time = std::chrono::system_clock::now();
+
+
+
+    const auto receiving_end_time = std::chrono::system_clock::now();
+    const duration_millis sending_duration = receiving_end_time - receiving_start_time;
+    context.timings.polynomials_transmission = sending_duration.count();
+
+    const auto eval_poly_start_time = std::chrono::system_clock::now();
+    for (auto poly_i = 0ull; poly_i < polynomials.size(); ++poly_i) {
+      for (auto coeff_i = 0ull; coeff_i < context.polynomialsize; ++coeff_i) {
+        polynomials.at(poly_i).at(coeff_i).elem = (reinterpret_cast<uint64_t *>(
+            poly_rcv_buffer.data()))[poly_i * context.polynomialsize + coeff_i];
+      }
+    }
+
+    for (auto i = 0ull; i < X.size(); ++i) {
+      std::size_t p = i / nbinsinmegabin;
+      Poly::evalMersenne(Y.at(i), polynomials.at(p), X.at(i));
+    }
+
+    const auto eval_poly_end_time = std::chrono::system_clock::now();
+    const duration_millis eval_poly_duration = eval_poly_end_time - eval_poly_start_time;
+    context.timings.polynomials = eval_poly_duration.count();
+
+    std::vector<uint64_t> raw_bin_result;
+    raw_bin_result.reserve(X.size());
+    for (auto i = 0ull; i < X.size(); ++i) {
+      raw_bin_result.push_back(X[i].elem ^ Y[i].elem);
+    }
+
+    const auto end_time = std::chrono::system_clock::now();
+    const duration_millis total_duration = end_time - start_time;
+    context.timings.total = total_duration.count();
+    */
+    const auto filter_end_time = std::chrono::system_clock::now();
+    const duration_millis polynomial_duration = filter_end_time - filter_start_time;
+    context.timings.polynomials = polynomial_duration.count();
+    //return content_of_bins;
     uint8_t* res_shares;
     const auto clock_time_cir_start = std::chrono::system_clock::now();
       for(int i=0; i<pad; i++) {
