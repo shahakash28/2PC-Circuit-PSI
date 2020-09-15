@@ -75,8 +75,8 @@ class BatchEquality {
 
 		void computeLeafOTs(uint64_t* data)
 		{
-
-			//clock_gettime(CLOCK_MONOTONIC, &start);
+      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
+			clock_gettime(CLOCK_MONOTONIC, &start);
 			uint8_t* digits; // num_digits * num_cmps
 
 			if(this->party == sci::ALICE) {
@@ -105,7 +105,7 @@ class BatchEquality {
 
 				// Set Leaf OT messages
 				triple_gen1->prg->random_bool((bool*)leaf_eq, batch_size*num_digits*num_cmps);
-				//clock_gettime(CLOCK_MONOTONIC, &lomstart);
+				clock_gettime(CLOCK_MONOTONIC, &lomstart);
 				for(int i = 0; i < num_digits; i++) {
 					for(int j = 0; j < num_cmps; j++) {
 						if (i == (num_digits - 1) && (r > 0)){
@@ -123,9 +123,9 @@ class BatchEquality {
 						}
 					}
 				}
-				//clock_gettime(CLOCK_MONOTONIC, &lomfinish);
+				clock_gettime(CLOCK_MONOTONIC, &lomfinish);
 
-				//clock_gettime(CLOCK_MONOTONIC, &locstart);
+				clock_gettime(CLOCK_MONOTONIC, &locstart);
 
 				// Perform Leaf OTs
 #ifdef WAN_EXEC
@@ -158,13 +158,13 @@ class BatchEquality {
 				for(int i = 0; i < num_digits*num_cmps; i++)
 					delete[] leaf_ot_messages[i];
 				delete[] leaf_ot_messages;
-				/*clock_gettime(CLOCK_MONOTONIC, &locfinish);
+				clock_gettime(CLOCK_MONOTONIC, &locfinish);
 				double total_time = (lomfinish.tv_sec - lomstart.tv_sec);
 				total_time += (lomfinish.tv_nsec - lomstart.tv_nsec) / 1000000000.0;
 				std::cout<<"Leaf OT Message Time: "<<total_time<<std::endl;
 				total_time = (locfinish.tv_sec - locstart.tv_sec);
 				total_time += (locfinish.tv_nsec - locstart.tv_nsec) / 1000000000.0;
-				std::cout<<"Leaf OT Comm. Time "<<total_time<<std::endl;*/
+				std::cout<<"Leaf OT Comm. Time "<<total_time<<std::endl;
 
 			}
 			else // party = sci::BOB
@@ -209,11 +209,10 @@ class BatchEquality {
 				}
 			}
 
-			/*clock_gettime(CLOCK_MONOTONIC, &finish);
+			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;*/
-
+      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;
 			/*for(int i=0; i<10; i++) {
 				for(int j=0;j<batch_size; j++) {
 					std::cout<< (int)leaf_eq[j*num_digits*num_cmps+ i] << " ";
@@ -247,25 +246,25 @@ class BatchEquality {
 		 **************************************************************************************************/
 
     void generate_triples() {
+      struct timespec start, finish;
+      clock_gettime(CLOCK_MONOTONIC, &start);
       triple_gen2->generate(3-party, triples_std, _16KKOT_to_4OT);
+      clock_gettime(CLOCK_MONOTONIC, &finish);
+			double total_time = (finish.tv_sec - start.tv_sec);
+  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;
     }
 
 		void traverse_and_compute_ANDs(){
+      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
 
 			//if(sci::ALICE) {
 
 			//}
 
-			/*std::cout << "Num Triples are: " << num_triples<< std::endl;
 
-			std::cout<<"CP 1"<< std::endl;
+
 			clock_gettime(CLOCK_MONOTONIC, &start);
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			 total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Triple Time: "<<total_time<<std::endl;
-
-			std::cout<<"CP 2"<< std::endl;*/
 			//clock_gettime(CLOCK_MONOTONIC, &start);
 			// Combine leaf OT results in a bottom-up fashion
 			int counter_std = 0, old_counter_std = 0;
@@ -338,10 +337,10 @@ class BatchEquality {
 				old_triple_count= triple_count;
 			}
 
-			/*clock_gettime(CLOCK_MONOTONIC, &finish);
+			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"AND Time: "<<total_time<<std::endl;*/
+      std::cout<<"AND Time: "<<total_time<<std::endl;
 
 			/*std::cout<<"Some Outputs"<< std::endl;
 
