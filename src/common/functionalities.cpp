@@ -36,7 +36,7 @@
 #include "HashingTables/common/hashing.h"
 #include "HashingTables/simple_hashing/simple_hashing.h"
 #include "config.h"
-#include "EzPC/SCI/src/Millionaire/batch_equality_split.h"
+#include "batch_equality.h"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -68,7 +68,25 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
   std::unique_ptr<CSocket> sock =
     EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
   sock->Close();
+  sci::NetIO* ioArr[2];
+  sci::OTPack<sci::NetIO> *otpackArr[2];
+
+  int party=1;
+  if(context.role == 0) {
+    party=2;
+  }
+
+  //Config
+  int l=62;
+  int b=5;
+
+  ioArr[0] = new NetIO(party==1 ? nullptr:context.address.c_str(), context.port+1);
+  ioArr[1] = new NetIO(party==1 ? nullptr:context.address.c_str(), context.port+2);
+
   const auto clock_time_total_start = std::chrono::system_clock::now();
+  otpackArr[0] = new OTPack<NetIO>(ioArr[0], party, b, l);
+  otpackArr[1] = new OTPack<NetIO>(ioArr[1], 3-party, b, l);
+  BatchEquality<NetIO>* compare;
   // create hash tables from the elements
   int num_cmps, rmdr;
   rmdr = context.nbins % 8;
@@ -83,17 +101,14 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
     value = C_CONST;
   }
 
+  compare = new BatchEquality<NetIO>(party, l, b, 3, num_cmps, ioArr[0], ioArr[1], otpackArr[0], otpackArr[1]);
+
   if (context.role == CLIENT) {
     content_of_bins.reserve(3*num_cmps);
     OpprgPsiClient(inputs, context);
   } else {
     content_of_bins.reserve(num_cmps);
     OpprgPsiServer(inputs, context);
-  }
-
-  int party=1;
-  if(context.role == 0) {
-    party=2;
   }
 
   uint8_t* res_shares;
@@ -107,7 +122,8 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
       content_of_bins[context.nbins+i]=value;
     }
   }
-  perform_batch_equality(content_of_bins.data(), party, num_cmps, 3, context.address, context.port, res_shares);
+
+  perform_batch_equality(content_of_bins.data(), compare, res_shares);
 
 
   /*for(int i=0; i<context.nbins; i++) {
@@ -494,6 +510,7 @@ void OpprgPsiServer(const std::vector<uint64_t> &elements,
   std::unique_ptr<CSocket> sock =
       EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
   const auto ftrans_start_time = std::chrono::system_clock::now();
+  std::cout<<"Hint Size: "<< context.fbins * sizeof(uint64_t)<< endl;
   sock->Send(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
   const auto ftrans_end_time = std::chrono::system_clock::now();
   const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
