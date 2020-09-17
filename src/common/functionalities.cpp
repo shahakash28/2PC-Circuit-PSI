@@ -48,6 +48,9 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <cmath>
+#include "table_opprf.h"
+
+#include <openssl/sha.h>
 
 struct hashlocmap {
   int bin;
@@ -203,6 +206,44 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
       }
     }
 
+    const auto table_start_time = std::chrono::system_clock::now();
+    uint64_t addresses1[context.ffuns];
+    uint8_t bitaddress[context.ffuns];
+    uint64_t mask_ad = (1ULL << 2) - 1;
+
+    double ave_ctr=0.0;
+    for(int i=0; i<context.nbins; i++) {
+      osuCrypto::PRNG prngo(masks_with_dummies[i], 2);
+      bool uniqueMap = false;
+      int ctr=0;
+      while (!uniqueMap) {
+        uint64_t nonce = prngo.get<uint64_t>();
+
+        for(int j=0; j< context.ffuns; j++) {
+          addresses1[j] = hashToPosition(content_of_bins[i*context.ffuns + j], nonce);
+          bitaddress[j] = addresses1[j] & mask_ad;
+        }
+
+        if(bitaddress[0] != bitaddress[1] && bitaddress[0] != bitaddress[2] && bitaddress[1] != bitaddress[2]) {
+          //std::cout<<"Found success for " << i << "th bin at ctr " << ctr <<std::endl;
+          //std::cout<<"Bit Addresses " << (int)bitaddress[0] << ", " << (int)bitaddress[1]<<", " << (int)bitaddress[2] <<std::endl;
+          uniqueMap = true;
+          ave_ctr += ctr;
+        } else {
+          //std::cout<<"Bit Addresses " << (int)bitaddress[0] << ", " << (int)bitaddress[1]<<", " << (int)bitaddress[2] <<std::endl;
+          //std::cout<<"Contents to be hashed " << int(content_of_bins[i*context.ffuns] ^ nonce) << ", " << int(content_of_bins[i*context.ffuns + 1] ^ nonce)<<", " << int(content_of_bins[i*context.ffuns + 2] ^ nonce) <<std::endl;
+          //std::cout<<"No success found for " << i << "th bin at ctr " << ctr<<std::endl;
+        }
+        ctr++;
+      }
+    }
+
+    ave_ctr = ave_ctr/context.nbins;
+    std::cout<<"Average counts: "<<ave_ctr<<std::endl;
+    const auto table_end_time = std::chrono::system_clock::now();
+    const duration_millis table_duration = table_end_time - table_start_time;
+    auto table_time_tot = table_duration.count();
+    std::cout<<"Table Hashing time: "<<table_time_tot<<std::endl;
     /*std::cout<<"***********************************"<<std::endl;
     std::cout<<"The Contents of Bins are: ["<<std::endl;
     for(int i=0;i<context.nbins;i++) {
@@ -615,6 +656,37 @@ void OpprgPsiClient(const std::vector<uint64_t> &elements,
     }
   }
 
+  uint64_t addresses1[context.ffuns];
+  uint8_t bitaddress[context.ffuns];
+  uint64_t mask_ad = (1ULL << 2) - 1;
+
+  for(int i=0; i<context.nbins; i++) {
+    osuCrypto::PRNG prngo(masks_with_dummies[i], 2);
+    bool uniqueMap = false;
+    int ctr=0;
+    while (!uniqueMap) {
+      uint64_t nonce = prngo.get<uint64_t>();
+
+      for(int j=0; j< context.ffuns; j++) {
+        addresses1[j] = hashToPosition(content_of_bins[i*context.ffuns + j], nonce);
+      }
+
+      for(int k=0; k<32 && !uniqueMap;k++) {
+        for(int j=0;j< context.ffuns; j++) {
+          bitaddress[j] = (addresses1[j] << 2*k) & mask_ad;
+        }
+
+        if(bitaddress[0] != bitaddress[1] && bitaddress[0] != bitaddress[2] && bitaddress[1] != bitaddress[2]) {
+          //std::cout<<"Found success for " << i << "th bin at ctr " << ctr<<" and k " << k <<std::endl;
+          //std::cout<<"Bit Addresses " << (int)bitaddress[0] << ", " << (int)bitaddress[1]<<", " << (int)bitaddress[2] <<std::endl;
+          uniqueMap = true;
+        } else {
+          //std::cout<<"No success found for " << i << "th bin at ctr " << ctr<<" and k " << k <<std::endl;
+        }
+      }
+      ctr++;
+    }
+  }
   /*std::cout<<"***********************************"<<std::endl;
   std::cout<<"The Contents of Bins are: ["<<std::endl;
   for(int i=0;i<context.nbins;i++) {

@@ -17,6 +17,7 @@ add_library(src
         common/helpers.cpp
         polynomials/Mersenne.cpp
         polynomials/Poly.cpp
+        common/table_opprf.cpp
         ots/ots.cpp
         )
 
