@@ -81,8 +81,8 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
   }
 
   //Config
-  int l=62;
-  int b=5;
+  int l= (int)context.bitlen;
+  int b= (int)context.nmegabins;
 
   ioArr[0] = new NetIO(party==1 ? nullptr:context.address.c_str(), context.port+1);
   ioArr[1] = new NetIO(party==1 ? nullptr:context.address.c_str(), context.port+2);
@@ -215,58 +215,6 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
     }
     std::cout<<"]"<<std::endl;
     std::cout<<"***********************************"<<std::endl;*/
-    /*
-    std::unique_ptr<CSocket> sock =
-        EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
-
-    const auto nbinsinmegabin = ceil_divide(context.nbins, context.nmegabins);
-    std::vector<std::vector<ZpMersenneLongElement>> polynomials(context.nmegabins);
-    std::vector<ZpMersenneLongElement> X(context.nbins), Y(context.nbins);
-    for (auto &polynomial : polynomials) {
-      polynomial.resize(context.polynomialsize);
-    }
-
-    for (auto i = 0ull; i < X.size(); ++i) {
-      X.at(i).elem = masks_with_dummies.at(i);
-    }
-
-    std::vector<uint8_t> poly_rcv_buffer(context.nmegabins * context.polynomialbytelength, 0);
-
-    const auto receiving_start_time = std::chrono::system_clock::now();
-
-
-
-    const auto receiving_end_time = std::chrono::system_clock::now();
-    const duration_millis sending_duration = receiving_end_time - receiving_start_time;
-    context.timings.polynomials_transmission = sending_duration.count();
-
-    const auto eval_poly_start_time = std::chrono::system_clock::now();
-    for (auto poly_i = 0ull; poly_i < polynomials.size(); ++poly_i) {
-      for (auto coeff_i = 0ull; coeff_i < context.polynomialsize; ++coeff_i) {
-        polynomials.at(poly_i).at(coeff_i).elem = (reinterpret_cast<uint64_t *>(
-            poly_rcv_buffer.data()))[poly_i * context.polynomialsize + coeff_i];
-      }
-    }
-
-    for (auto i = 0ull; i < X.size(); ++i) {
-      std::size_t p = i / nbinsinmegabin;
-      Poly::evalMersenne(Y.at(i), polynomials.at(p), X.at(i));
-    }
-
-    const auto eval_poly_end_time = std::chrono::system_clock::now();
-    const duration_millis eval_poly_duration = eval_poly_end_time - eval_poly_start_time;
-    context.timings.polynomials = eval_poly_duration.count();
-
-    std::vector<uint64_t> raw_bin_result;
-    raw_bin_result.reserve(X.size());
-    for (auto i = 0ull; i < X.size(); ++i) {
-      raw_bin_result.push_back(X[i].elem ^ Y[i].elem);
-    }
-
-    const auto end_time = std::chrono::system_clock::now();
-    const duration_millis total_duration = end_time - start_time;
-    context.timings.total = total_duration.count();
-    */
     const auto filter_end_time = std::chrono::system_clock::now();
     const duration_millis polynomial_duration = filter_end_time - filter_start_time;
     context.timings.polynomials = polynomial_duration.count();
@@ -276,6 +224,7 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
       for(int i=0; i<pad; i++) {
         content_of_bins[3*context.nbins+i]=value;
       }
+
       perform_batch_equality(content_of_bins.data(), compare, res_shares);
       const auto clock_time_cir_end = std::chrono::system_clock::now();
       const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
@@ -533,13 +482,14 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
 
   sci::NetIO* ioArr[2];
   sci::OTPack<sci::NetIO> *otpackArr[2];
+  int b = (int)context.nmegabins;
   string address1 = context.address;
   for(int i = 0; i < 2; i++) {
         ioArr[i] = new NetIO(party==1 ? nullptr:address1.c_str(), context.port+1+i);
         if (i == 0) {
-            otpackArr[i] = new OTPack<NetIO>(ioArr[i], party, 4, context.bitlen);
+            otpackArr[i] = new OTPack<NetIO>(ioArr[i], party, b, context.bitlen);
         } else if (i == 1) {
-            otpackArr[i] = new OTPack<NetIO>(ioArr[i], 3-party, 4, context.bitlen);
+            otpackArr[i] = new OTPack<NetIO>(ioArr[i], 3-party, b, context.bitlen);
         }
     }
 
@@ -790,7 +740,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
         content_of_bins[context.nbins+i]=value;
     }
 
-    perform_equality(content_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
+    perform_equality(content_of_bins.data(), party, context.bitlen, b, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
     //  perform_batch_equality(content_of_bins.data(), compare, res_shares);
       const auto clock_time_cir_end = std::chrono::system_clock::now();
       const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
@@ -986,7 +936,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
     const auto clock_time_cir_start = std::chrono::system_clock::now();
     //perform_batch_equality(content_of_bins.data(), compare, res_shares);
     uint8_t* res_shares = new uint8_t[num_cmps];
-    perform_equality(actual_contents_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
+    perform_equality(actual_contents_of_bins.data(), party, context.bitlen, b, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
     const auto clock_time_cir_end = std::chrono::system_clock::now();
     const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
     context.timings.aby_total = cir_duration.count();

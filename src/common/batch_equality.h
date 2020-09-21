@@ -26,6 +26,9 @@ class BatchEquality {
 		uint8_t mask_beta, mask_r;
 		Triple* triples_std;
     uint8_t* leaf_eq;
+		uint8_t* digits;
+		uint8_t** leaf_ot_messages; // (num_digits * num_cmps) X beta_pow (=2^beta)
+
 
 		BatchEquality(int party,
 				int bitlength,
@@ -73,22 +76,18 @@ class BatchEquality {
       delete triple_gen2;
 		}
 
-		void computeLeafOTs(uint64_t* data)
-		{
-      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
-			clock_gettime(CLOCK_MONOTONIC, &start);
-			uint8_t* digits; // num_digits * num_cmps
+		void setLeafMessages(uint64_t* data) {
+			struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
 
 			if(this->party == sci::ALICE) {
     		radixArrSize = batch_size*num_cmps;
   		} else {
 				radixArrSize = num_cmps;
   		}
-
+			
 			digits = new uint8_t[num_digits*radixArrSize];
 			leaf_eq = new uint8_t[num_digits*batch_size*num_cmps];
 
-			// Extract radix-digits from data
 			for(int i = 0; i < num_digits; i++) // Stored from LSB to MSB
 				for(int j = 0; j < radixArrSize; j++)
 					if ((i == num_digits-1) && (r != 0))
@@ -96,9 +95,7 @@ class BatchEquality {
 					else
 						digits[i*radixArrSize+j] = (uint8_t)(data[j] >> i*beta) & mask_beta;
 
-			if(party == sci::ALICE)
-			{
-	    	uint8_t** leaf_ot_messages; // (num_digits * num_cmps) X beta_pow (=2^beta)
+			if(party==sci::ALICE) {
 				leaf_ot_messages = new uint8_t*[num_digits*num_cmps];
 				for(int i = 0; i < num_digits*num_cmps; i++)
 					leaf_ot_messages[i] = new uint8_t[beta_pow];
@@ -113,7 +110,7 @@ class BatchEquality {
 							set_leaf_ot_messages(leaf_ot_messages[i*num_cmps+j], digits,
 									beta_pow, leaf_eq, i, j);
 #else
-						  set_leaf_ot_messages(leaf_ot_messages[i*num_cmps+j], digits,
+							set_leaf_ot_messages(leaf_ot_messages[i*num_cmps+j], digits,
 									1 << r, leaf_eq, i, j);
 #endif
 						}
@@ -124,7 +121,20 @@ class BatchEquality {
 					}
 				}
 				clock_gettime(CLOCK_MONOTONIC, &lomfinish);
+			}
 
+		}
+
+		void computeLeafOTs()
+		{
+      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
+			clock_gettime(CLOCK_MONOTONIC, &start);
+			 // num_digits * num_cmps
+
+			// Extract radix-digits from data
+
+			if(party == sci::ALICE)
+			{
 				clock_gettime(CLOCK_MONOTONIC, &locstart);
 
 				// Perform Leaf OTs
@@ -333,6 +343,7 @@ class BatchEquality {
 							sci::uint8_to_bool(leaf_eq + j*num_cmps + k*num_digits*num_cmps + m, temp_z, 8);
 						}
 					}
+					counter++;
 				}
 				old_triple_count= triple_count;
 			}
@@ -401,8 +412,8 @@ class BatchEquality {
 
 
 
-void computeLeafOTsThread(BatchEquality<NetIO>* compare, uint64_t* x) {
-  compare->computeLeafOTs(x);
+void computeLeafOTsThread(BatchEquality<NetIO>* compare) {
+  compare->computeLeafOTs();
 }
 
 void generate_triples_thread(BatchEquality<NetIO>* compare) {
@@ -412,9 +423,12 @@ void generate_triples_thread(BatchEquality<NetIO>* compare) {
 void perform_batch_equality(uint64_t* inputs, BatchEquality<NetIO>* compare, uint8_t* res_shares) {
 
     std::thread cmp_threads[2];
-    cmp_threads[0] = std::thread(computeLeafOTsThread, compare, inputs);
+		std::cout<<"CP 1"<<std::endl;
+		compare->setLeafMessages(inputs);
+		std::cout<<"CP 2"<<std::endl;
+    cmp_threads[0] = std::thread(computeLeafOTsThread, compare);
     cmp_threads[1] = std::thread(generate_triples_thread, compare);
-
+    std::cout<<"CP 3"<<std::endl;
     for (int i = 0; i < 2; ++i) {
       cmp_threads[i].join();
     }
