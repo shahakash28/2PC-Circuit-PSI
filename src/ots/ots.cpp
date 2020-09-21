@@ -35,6 +35,7 @@ namespace ENCRYPTO {
 std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs,
                                        ENCRYPTO::PsiAnalyticsContext &context) {
   std::size_t numOTs = inputs.size();
+    std::cout<<"Num OTs: "<< numOTs<<std::endl;
   osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
 
   osuCrypto::KkrtNcoOtReceiver recv;
@@ -97,6 +98,7 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
 // Server
 std::vector<std::vector<osuCrypto::block>> ot_sender(
     const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context) {
+
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253465, 3434565, 234435, 23987025));
   osuCrypto::KkrtNcoOtSender sender;
@@ -123,7 +125,6 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   baseOTs.receive(choices, baseRecv, prng, sendChl, 1);
 
   sender.setBaseOts(baseRecv, choices);
-
   const auto baseots_end_time = std::chrono::system_clock::now();
   const duration_millis baseOTs_duration = baseots_end_time - baseots_start_time;
   context.timings.base_ots_libote = baseOTs_duration.count();

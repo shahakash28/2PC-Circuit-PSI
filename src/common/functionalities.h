@@ -34,6 +34,7 @@
 namespace ENCRYPTO {
 
 uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
+uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
 
 void OpprgPsiClient(const std::vector<uint64_t> &elements,
                                      PsiAnalyticsContext &context);
@@ -58,4 +59,5 @@ std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_
 std::size_t PlainIntersectionSize(std::vector<std::uint64_t> v1, std::vector<std::uint64_t> v2);
 
 void PrintTimings(const PsiAnalyticsContext &context);
+void PrintTimingsNew(const PsiAnalyticsContext &context);
 }

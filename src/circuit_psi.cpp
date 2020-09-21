@@ -118,8 +118,8 @@ int main(int argc, char **argv) {
 
 
   //auto inputs = ENCRYPTO::GeneratePseudoRandomElements(context.neles, gen_bitlen);
-  ENCRYPTO::run_psi_analytics(inputs, context);
+  ENCRYPTO::run_gcf_tab_psi(inputs, context);
   std::cout << "PSI circuit successfully executed" << std::endl;
-  PrintTimings(context);
+  PrintTimingsNew(context);
   return EXIT_SUCCESS;
 }
