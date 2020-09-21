@@ -57,7 +57,7 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Client,
                         name);
   auto recvChl = ep.addChannel(name, name);
-
+  const auto indepenendent_start_time = std::chrono::system_clock::now();
   const auto baseots_start_time = std::chrono::system_clock::now();
   // the number of base OT that need to be done
   osuCrypto::u64 baseCount = recv.getBaseOTCount();
@@ -77,6 +77,9 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   recv.init(numOTs, prng, recvChl);
 
   std::vector<osuCrypto::block> blocks(numOTs), receiver_encoding(numOTs);
+  const auto indepenendent_end_time = std::chrono::system_clock::now();
+  const duration_millis indepenendent_duration =indepenendent_end_time - indepenendent_start_time;
+  std::cout << "indepenendent time: " << indepenendent_duration.count()<<std::endl;
 
   for (auto i = 0ull; i < inputs.size(); ++i) {
     blocks.at(i) = osuCrypto::toBlock(inputs[i]);
@@ -104,7 +107,7 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
 std::vector<std::vector<osuCrypto::block>> ot_sender(
     const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context, bool switchaddress) {
   std::string address;
-
+  const auto indepenendent_start_time = std::chrono::system_clock::now();
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253465, 3434565, 234435, 23987025));
   osuCrypto::KkrtNcoOtSender sender;
@@ -141,6 +144,10 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
 
   const auto OPRF_start_time = std::chrono::system_clock::now();
   sender.init(numOTs, prng, sendChl);
+
+  const auto indepenendent_end_time = std::chrono::system_clock::now();
+  const duration_millis indepenendent_duration =indepenendent_end_time - indepenendent_start_time;
+  std::cout << "indepenendent time: " << indepenendent_duration.count()<<std::endl;
 
   std::vector<std::vector<osuCrypto::block>> inputs_as_blocks(numOTs), outputs_as_blocks(numOTs);
   for (auto i = 0ull; i < numOTs; ++i) {
