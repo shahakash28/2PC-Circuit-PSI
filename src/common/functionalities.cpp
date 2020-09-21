@@ -473,8 +473,6 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
   std::unique_ptr<CSocket> sock =
     EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
   sock->Close();
-  const auto clock_time_total_start = std::chrono::system_clock::now();
-
   int party=1;
   if(context.role == 0) {
     party=2;
@@ -484,8 +482,10 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
   sci::OTPack<sci::NetIO> *otpackArr[2];
   int b = (int)context.nmegabins;
   string address1 = context.address;
+  for(int i=0; i<2; i++)
+    ioArr[i] = new NetIO(party==1 ? nullptr:address1.c_str(), context.port+1+i);
+  const auto clock_time_total_start = std::chrono::system_clock::now();
   for(int i = 0; i < 2; i++) {
-        ioArr[i] = new NetIO(party==1 ? nullptr:address1.c_str(), context.port+1+i);
         if (i == 0) {
             otpackArr[i] = new OTPack<NetIO>(ioArr[i], party, b, context.bitlen);
         } else if (i == 1) {
