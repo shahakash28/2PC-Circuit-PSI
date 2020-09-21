@@ -120,7 +120,7 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
     address="0.0.0.0";
   else
     address=context.address;
-  osuCrypto::Session ep(ios, context.address, context.port + 1, osuCrypto::SessionMode::Server,
+  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Server,
                         name);
   auto sendChl = ep.addChannel(name, name);
 

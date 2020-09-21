@@ -531,6 +531,20 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
     party=2;
   }
 
+  sci::NetIO* ioArr[2];
+  sci::OTPack<sci::NetIO> *otpackArr[2];
+  string address1 = context.address;
+  for(int i = 0; i < 2; i++) {
+        ioArr[i] = new NetIO(party==1 ? nullptr:address1.c_str(), context.port+1+i);
+        if (i == 0) {
+            otpackArr[i] = new OTPack<NetIO>(ioArr[i], party, 4, context.bitlen);
+        } else if (i == 1) {
+            otpackArr[i] = new OTPack<NetIO>(ioArr[i], 3-party, 4, context.bitlen);
+        }
+    }
+
+    std::cout << "All Base OTs Done" << std::endl;
+
   // create hash tables from the elements
   int num_cmps, rmdr;
   rmdr = context.nbins % 8;
@@ -776,7 +790,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
         content_of_bins[context.nbins+i]=value;
     }
 
-    perform_equality(content_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares);
+    perform_equality(content_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
     //  perform_batch_equality(content_of_bins.data(), compare, res_shares);
       const auto clock_time_cir_end = std::chrono::system_clock::now();
       const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
@@ -972,7 +986,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
     const auto clock_time_cir_start = std::chrono::system_clock::now();
     //perform_batch_equality(content_of_bins.data(), compare, res_shares);
     uint8_t* res_shares = new uint8_t[num_cmps];
-    perform_equality(actual_contents_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares);
+    perform_equality(actual_contents_of_bins.data(), party, context.bitlen, 4, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
     const auto clock_time_cir_end = std::chrono::system_clock::now();
     const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
     context.timings.aby_total = cir_duration.count();

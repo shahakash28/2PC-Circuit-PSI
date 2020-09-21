@@ -472,7 +472,7 @@ void equality_thread(int tid, int party, uint64_t* x, uint8_t* z, int lnum_cmps,
 }
 
 
-void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string address, int port, uint8_t* z) {
+void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string address, int port, uint8_t* z, sci::NetIO** ioArr, OTPack<sci::NetIO>** otpackArr) {
     uint64_t mask_l;
     if (l == 64) mask_l = -1;
     else mask_l = (1ULL << l) - 1;
@@ -482,22 +482,6 @@ void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string
 	for(int i=0;i<2;i++){
 		multiThreadedIOStart[i] = ioArr[i]->counter;
 	}*/
-
-  sci::NetIO* ioArr[2];
-  sci::OTPack<sci::NetIO> *otpackArr[2];
-
-  //string address1 = "40.118.124.169";
-
-  for(int i = 0; i < 2; i++) {
-        ioArr[i] = new NetIO(party==1 ? nullptr:address.c_str(), port+i);
-        if (i == 0) {
-            otpackArr[i] = new OTPack<NetIO>(ioArr[i], party, b, l);
-        } else if (i == 1) {
-            otpackArr[i] = new OTPack<NetIO>(ioArr[i], 3-party, b, l);
-        }
-    }
-
-    std::cout << "All Base OTs Done" << std::endl;
 
     std::thread cmp_threads[2];
     int chunk_size = (num_cmps/(8*2))*8;
