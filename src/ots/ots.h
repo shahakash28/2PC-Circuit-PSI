@@ -40,9 +40,9 @@
 namespace ENCRYPTO {
 
 std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t>& inputs,
-                                       ENCRYPTO::PsiAnalyticsContext& context);
+                                       ENCRYPTO::PsiAnalyticsContext& context, bool switchaddress);
 
 std::vector<std::vector<osuCrypto::block>> ot_sender(
-    const std::vector<std::vector<std::uint64_t>>& inputs, ENCRYPTO::PsiAnalyticsContext& context);
+    const std::vector<std::vector<std::uint64_t>>& inputs, ENCRYPTO::PsiAnalyticsContext& context, bool switchaddress);
 
 }

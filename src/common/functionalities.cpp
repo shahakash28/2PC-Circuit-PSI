@@ -139,7 +139,7 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
     context.timings.hashing = hashing_duration.count();
     const auto oprf_start_time = std::chrono::system_clock::now();
 
-    auto masks_with_dummies = ot_receiver(cuckoo_table_v, context);
+    auto masks_with_dummies = ot_receiver(cuckoo_table_v, context, false);
 
     const auto oprf_end_time = std::chrono::system_clock::now();
     const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
@@ -305,7 +305,7 @@ uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalytic
 
     const auto oprf_start_time = std::chrono::system_clock::now();
 
-    auto masks = ot_sender(simple_table_v, context);
+    auto masks = ot_sender(simple_table_v, context, false);
 
     const auto oprf_end_time = std::chrono::system_clock::now();
     const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
@@ -577,7 +577,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
 
     /*********************OPRF 1*******************/
     const auto oprf_start_time = std::chrono::system_clock::now();
-    auto masks_with_dummies = ot_receiver(cuckoo_table_v, context);
+    auto masks_with_dummies = ot_receiver(cuckoo_table_v, context, false);
     const auto oprf_end_time = std::chrono::system_clock::now();
     const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
     context.timings.oprf = oprf_duration.count();
@@ -664,7 +664,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
     const int ts=4;
 
     const auto oprf2_start_time = std::chrono::system_clock::now();
-    auto table_masks = ot_sender(opprf_values, context);
+    auto table_masks = ot_sender(opprf_values, context, true);
     const auto oprf2_end_time = std::chrono::system_clock::now();
     const duration_millis oprf2_duration = oprf2_end_time - oprf2_start_time;
     context.timings.oprf2 = oprf2_duration.count();
@@ -806,7 +806,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
 
     const auto oprf_start_time = std::chrono::system_clock::now();
 
-    auto masks = ot_sender(simple_table_v, context);
+    auto masks = ot_sender(simple_table_v, context, false);
 
     const auto oprf_end_time = std::chrono::system_clock::now();
     const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
@@ -921,7 +921,7 @@ uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsC
 
     const auto oprf2_start_time = std::chrono::system_clock::now();
     const int ts=4;
-    auto masks_with_dummies = ot_receiver(content_of_bins, context);
+    auto masks_with_dummies = ot_receiver(content_of_bins, context, true);
     const auto oprf2_end_time = std::chrono::system_clock::now();
     const duration_millis oprf2_duration = oprf2_end_time - oprf2_start_time;
     context.timings.oprf2 = oprf2_duration.count();
@@ -1098,7 +1098,7 @@ void OpprgPsiClient(const std::vector<uint64_t> &elements,
   context.timings.hashing = hashing_duration.count();
   const auto oprf_start_time = std::chrono::system_clock::now();
 
-  auto masks_with_dummies = ot_receiver(cuckoo_table_v, context);
+  auto masks_with_dummies = ot_receiver(cuckoo_table_v, context, false);
 
   const auto oprf_end_time = std::chrono::system_clock::now();
   const duration_millis oprf_duration = oprf_end_time - oprf_start_time;
@@ -1202,7 +1202,7 @@ void OpprgPsiServer(const std::vector<uint64_t> &elements,
 
   const auto oprf_start_time = std::chrono::system_clock::now();
 
-  auto masks = ot_sender(simple_table_v, context);
+  auto masks = ot_sender(simple_table_v, context, false);
 
   const auto oprf_end_time = std::chrono::system_clock::now();
   const duration_millis oprf_duration = oprf_end_time - oprf_start_time;

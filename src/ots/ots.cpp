@@ -33,7 +33,8 @@ using duration_millis = std::chrono::duration<double, milliseconds_ratio>;
 namespace ENCRYPTO {
 // Client
 std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs,
-                                       ENCRYPTO::PsiAnalyticsContext &context) {
+                                       ENCRYPTO::PsiAnalyticsContext &context, bool switchaddress) {
+  std::string address;
   std::size_t numOTs = inputs.size();
     std::cout<<"Num OTs: "<< numOTs<<std::endl;
   osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
@@ -49,7 +50,11 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   // set up networking
   std::string name = "n";
   osuCrypto::IOService ios;
-  osuCrypto::Session ep(ios, context.address, context.port + 1, osuCrypto::SessionMode::Client,
+  if(switchaddress)
+    address="40.118.124.169";
+  else
+    address=context.address;
+  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Client,
                         name);
   auto recvChl = ep.addChannel(name, name);
 
@@ -97,7 +102,8 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
 
 // Server
 std::vector<std::vector<osuCrypto::block>> ot_sender(
-    const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context) {
+    const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context, bool switchaddress) {
+  std::string address;
 
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253465, 3434565, 234435, 23987025));
@@ -110,6 +116,10 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
 
   std::string name = "n";
   osuCrypto::IOService ios;
+  if(switchaddress)
+    address="0.0.0.0";
+  else
+    address=context.address;
   osuCrypto::Session ep(ios, context.address, context.port + 1, osuCrypto::SessionMode::Server,
                         name);
   auto sendChl = ep.addChannel(name, name);
