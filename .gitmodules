@@ -10,6 +10,3 @@
 [submodule "extern/googletest"]
 	path = extern/googletest
 	url = https://github.com/google/googletest.git
-[submodule "extern/EzPC"]
-	path = extern/EzPC
-	url = https://github.com/shahakash28/EzPC.git

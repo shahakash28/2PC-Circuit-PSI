@@ -26,6 +26,7 @@
 #include "abycore/circuit/share.h"
 #include "helpers.h"
 #include "config.h"
+#include <unordered_map>
 
 #include <vector>
 
@@ -34,6 +35,7 @@
 namespace ENCRYPTO {
 
 uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
+uint64_t run_psi_analytics_with_pl(const std::vector<std::uint64_t> &inputs, std::unordered_map<std::uint64_t,std::uint64_t> &payloads, PsiAnalyticsContext &context);
 uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
 
 void OpprgPsiClient(const std::vector<uint64_t> &elements,

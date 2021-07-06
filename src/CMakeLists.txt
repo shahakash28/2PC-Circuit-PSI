@@ -62,11 +62,26 @@ target_include_directories(src PUBLIC
 
 if (PSI_ANALYTICS_BUILD_EXAMPLE)
     add_executable(gcf_psi circuit_psi.cpp)
+    add_executable(hashing_time hashing_time.cpp)
+    add_executable(sec_feat sec_feat.cpp)
+
 
     target_link_libraries(gcf_psi PUBLIC
             src
             )
+    target_link_libraries(hashing_time PUBLIC
+            src
+            )
+    target_link_libraries(sec_feat PUBLIC
+            src
+            )
     set_target_properties(gcf_psi
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
+    set_target_properties(hashing_time
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
+    set_target_properties(sec_feat
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif (PSI_ANALYTICS_BUILD_EXAMPLE)
