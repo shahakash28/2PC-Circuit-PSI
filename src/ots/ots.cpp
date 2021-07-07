@@ -30,6 +30,8 @@
 using milliseconds_ratio = std::ratio<1, 1000>;
 using duration_millis = std::chrono::duration<double, milliseconds_ratio>;
 
+int global_ctr = 0;
+
 namespace ENCRYPTO {
 // Client
 std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs,
@@ -54,8 +56,9 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
     address="40.118.124.169";
   else
     address=context.address;
-  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Client,
+  osuCrypto::Session ep(ios, address, context.port + 1 + global_ctr, osuCrypto::SessionMode::Client,
                         name);
+  global_ctr = 10;                      
   auto recvChl = ep.addChannel(name, name);
   const auto indepenendent_start_time = std::chrono::system_clock::now();
   const auto baseots_start_time = std::chrono::system_clock::now();
@@ -96,6 +99,9 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
 
+  std::cout<<"Communication in OPRFs: (Sent) "<< recvChl.getTotalDataSent()<<std::endl;
+  std::cout<<"Communication in OPRFs: (Received) "<< recvChl.getTotalDataRecv()<<std::endl;
+
   recvChl.close();
   ep.stop();
   ios.stop();
@@ -123,8 +129,9 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
     address="0.0.0.0";
   else
     address=context.address;
-  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Server,
+  osuCrypto::Session ep(ios, address, context.port + 1 + global_ctr, osuCrypto::SessionMode::Server,
                         name);
+  global_ctr = 10;
   auto sendChl = ep.addChannel(name, name);
 
   const auto baseots_start_time = std::chrono::system_clock::now();
@@ -168,6 +175,9 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   const auto OPRF_end_time = std::chrono::system_clock::now();
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
+
+  std::cout<<"Communication in OPRFs: (Sent) "<< sendChl.getTotalDataSent()<<std::endl;
+  std::cout<<"Communication in OPRFs: (Received) "<< sendChl.getTotalDataRecv()<<std::endl;
 
   sendChl.close();
   ep.stop();

@@ -19,7 +19,7 @@ auto read_test_options(int32_t argcp, char **argvp) {
   // clang-format off
   allowed.add_options()("help,h", "produce this message")
   ("role,r",         po::value<decltype(context.role)>(&context.role)->required(),                                  "Role of the node")
-  ("neles,n",        po::value<decltype(context.neles)>(&context.neles)->default_value(4096u),                      "Number of my elements")
+  ("neles,n",        po::value<decltype(context.neles)>(&context.neles)->default_value(21413u),                      "Number of my elements")
   ("bit-length,b",   po::value<decltype(context.bitlen)>(&context.bitlen)->default_value(62u),                      "Bit-length of the elements")
   ("epsilon,e",      po::value<decltype(context.epsilon)>(&context.epsilon)->default_value(1.27f),                   "Epsilon, a table size multiplier")
   ("address,a",      po::value<decltype(context.address)>(&context.address)->default_value("127.0.0.1"),            "IP address of the server")
@@ -119,6 +119,7 @@ int main(int argc, char **argv) {
   tStart = clock();
   ENCRYPTO::run_psi_analytics_with_pl(inputs, payloads, context);
   tEnd = clock();
+  std::cout << "CPU time for execution: " << (double)(tEnd - tStart)/CLOCKS_PER_SEC << " sec\n";
   std::cout << "PSI circuit successfully executed" << std::endl;
 
   PrintTimings(context);

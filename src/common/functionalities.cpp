@@ -787,6 +787,7 @@ uint64_t run_psi_analytics_with_pl(const std::vector<std::uint64_t> &inputs, std
     std::cout<<"Hint Size: "<< context.fbins * sizeof(uint64_t)<< endl;
     sock->Send(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
     sock->Send(garbled_cuckoo_filter_pl.data(), context.fbins * sizeof(uint64_t));
+    std::cout<<"Hint Communication (Sent) " << sock->getSndCnt() << std::endl;
     const auto ftrans_end_time = std::chrono::system_clock::now();
     const duration_millis polynomial_trans = ftrans_end_time - ftrans_start_time;
     context.timings.polynomials_transmission = polynomial_trans.count();
@@ -889,6 +890,7 @@ uint64_t run_psi_analytics_with_pl(const std::vector<std::uint64_t> &inputs, std
   const duration_millis clock_time_total_duration = clock_time_total_end - clock_time_total_start;
   context.timings.total = clock_time_total_duration.count();
   */
+  std::cout<<"Communication in Batch Equality (Sent)" << ioArr[0]->counter + ioArr[1]->counter << std::endl;
   uint64_t output = 0;
   return output;
 }
