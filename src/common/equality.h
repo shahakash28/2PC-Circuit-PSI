@@ -1,3 +1,26 @@
+/*
+ * Original Work copyright (c) 2021 Microsoft Research
+ * Modified Work copyright (c) 2021 Microsoft Research
+ *
+ * Original Authors: Deevashwer Rathee, Mayank Rathee
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whome the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+ * A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * Modified by Akash Shah
+ */
 #ifndef EQUALITY_H__
 #define EQUALITY_H__
 #include "EzPC/SCI/src/OT/emp-ot.h"
@@ -164,10 +187,8 @@ class Equality {
 				clock_gettime(CLOCK_MONOTONIC, &locfinish);
 				double total_time = (lomfinish.tv_sec - lomstart.tv_sec);
 				total_time += (lomfinish.tv_nsec - lomstart.tv_nsec) / 1000000000.0;
-				std::cout<<"Leaf OT Message Time: "<<total_time<<std::endl;
 				total_time = (locfinish.tv_sec - locstart.tv_sec);
 				total_time += (locfinish.tv_nsec - locstart.tv_nsec) / 1000000000.0;
-				std::cout<<"Leaf OT Comm. Time "<<total_time<<std::endl;
 
 			}
 			else // party = sci::BOB
@@ -216,7 +237,6 @@ class Equality {
 			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;
 
       /*std::cout<<"Some leaf ot messages:"<<std::endl;
 			for(int i=0; i<10; i++) {
@@ -254,7 +274,6 @@ class Equality {
 			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Triple Generation Time: "<<total_time<<std::endl;
     }
 
 		void traverse_and_compute_ANDs(uint8_t* z){
@@ -393,7 +412,6 @@ class Equality {
 			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"AND Time: "<<total_time<<std::endl;
 
 			//std::cout<<"Some Outputs"<< std::endl;
 
@@ -502,7 +520,7 @@ void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string
     }
 
     for (int i = 0; i < 2; i++) {
-        delete ioArr[i];
+        //delete ioArr[i];
         delete otpackArr[i];
     }
     /************** Verification ****************/

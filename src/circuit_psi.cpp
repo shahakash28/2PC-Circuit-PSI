@@ -1,5 +1,6 @@
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
-// \file psi_analytics_example.cpp
 // \author Oleksandr Tkachenko
 // \email tkachenko@encrypto.cs.tu-darmstadt.de
 // \organization Cryptography and Privacy Engineering Group (ENCRYPTO)
@@ -7,6 +8,22 @@
 //
 // \copyright The MIT License. Copyright Oleksandr Tkachenko
 //
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+// OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 #include <cassert>
 #include <iostream>
@@ -18,6 +35,8 @@
 #include "abycore/aby/abyparty.h"
 
 #include "common/functionalities.h"
+#include "ENCRYPTO_utils/connection.h"
+#include "ENCRYPTO_utils/socket.h"
 #include "common/config.h"
 
 auto read_test_options(int32_t argcp, char **argvp) {
@@ -31,15 +50,13 @@ auto read_test_options(int32_t argcp, char **argvp) {
   ("neles,n",        po::value<decltype(context.neles)>(&context.neles)->default_value(4096u),                      "Number of my elements")
   ("bit-length,b",   po::value<decltype(context.bitlen)>(&context.bitlen)->default_value(62u),                      "Bit-length of the elements")
   ("epsilon,e",      po::value<decltype(context.epsilon)>(&context.epsilon)->default_value(1.27f),                   "Epsilon, a table size multiplier")
+  ("hint-epsilon,E",      po::value<decltype(context.fepsilon)>(&context.fepsilon)->default_value(1.27f),           "Epsilon, a hint table size multiplier")
   ("address,a",      po::value<decltype(context.address)>(&context.address)->default_value("127.0.0.1"),            "IP address of the server")
   ("port,p",         po::value<decltype(context.port)>(&context.port)->default_value(7777),                         "Port of the server")
-  ("threads,t",      po::value<decltype(context.nthreads)>(&context.nthreads)->default_value(1),                    "Number of threads")
-  ("others-neles,o", po::value<decltype(context.notherpartyselems)>(&context.notherpartyselems)->default_value(0u), "Number of other party's elements")
-  ("threshold,c",    po::value<decltype(context.threshold)>(&context.threshold)->default_value(0u),                 "Show PSI size if it is > threshold")
-  ("nmegabins,m",    po::value<decltype(context.nmegabins)>(&context.nmegabins)->default_value(1u),                 "Number of mega bins")
-  ("polysize,s",     po::value<decltype(context.polynomialsize)>(&context.polynomialsize)->default_value(0u),       "Size of the polynomial(s), default: neles")
+  ("radix,m",    po::value<decltype(context.radix)>(&context.radix)->default_value(5u),                             "Radix in PSM Protocol")
   ("functions,f",    po::value<decltype(context.nfuns)>(&context.nfuns)->default_value(3u),                         "Number of hash functions in hash tables")
-  ("type,y",         po::value<std::string>(&type)->default_value("None"),                                          "Function type {None, Threshold, Sum, SumIfGtThreshold}");
+  ("hint-functions,F",    po::value<decltype(context.ffuns)>(&context.ffuns)->default_value(3u),                         "Number of hash functions in hint hash tables")
+  ("psm-type,y",         po::value<std::string>(&type)->default_value("PSM1"),                                          "PSM type {PSM1, PSM2}");
   // clang-format on
 
   po::variables_map vm;
@@ -60,37 +77,18 @@ auto read_test_options(int32_t argcp, char **argvp) {
     exit(EXIT_SUCCESS);
   }
 
-  if (type.compare("None") == 0) {
-    context.analytics_type = ENCRYPTO::PsiAnalyticsContext::NONE;
-  } else if (type.compare("Threshold") == 0) {
-    context.analytics_type = ENCRYPTO::PsiAnalyticsContext::THRESHOLD;
-  } else if (type.compare("Sum") == 0) {
-    context.analytics_type = ENCRYPTO::PsiAnalyticsContext::SUM;
-  } else if (type.compare("SumIfGtThreshold") == 0) {
-    context.analytics_type = ENCRYPTO::PsiAnalyticsContext::SUM_IF_GT_THRESHOLD;
+  if (type.compare("PSM1") == 0) {
+    context.psm_type = ENCRYPTO::PsiAnalyticsContext::PSM1;
+  } else if (type.compare("PSM2") == 0) {
+    context.psm_type = ENCRYPTO::PsiAnalyticsContext::PSM2;
   } else {
-    std::string error_msg(std::string("Unknown function type: " + type));
+    std::string error_msg(std::string("Unknown PSM type: " + type));
     throw std::runtime_error(error_msg.c_str());
   }
 
-  if (context.notherpartyselems == 0) {
-    context.notherpartyselems = context.neles;
-  }
+  context.nbins = context.neles * context.epsilon;
 
-  if (context.polynomialsize == 0) {
-    context.polynomialsize = context.neles * context.nfuns;
-  }
-  context.polynomialbytelength = context.polynomialsize * sizeof(std::uint64_t);
-
-  const std::size_t client_neles =
-      context.role == CLIENT ? context.neles : context.notherpartyselems;
-  context.nbins = client_neles * context.epsilon;
-
-  //std::cout<<"In Input Parsing: "<< context.nbins<< ", "<< context.epsilon<< ", "<< context.neles<< std::endl;
-
-  context.ffuns =3u;
-  context.fepsilon= 1.27f;
-  context.fbins=context.fepsilon*context.neles*context.nfuns;
+  context.fbins=context.fepsilon * context.neles * context.nfuns;
 
   return context;
 }
@@ -99,6 +97,7 @@ int main(int argc, char **argv) {
   auto context = read_test_options(argc, argv);
   auto gen_bitlen = static_cast<std::size_t>(std::ceil(std::log2(context.neles))) + 3;
   std::vector<uint64_t> inputs;
+
   if(context.role == CLIENT) {
     for(int i=0;i<context.neles;i++){
       inputs.push_back(1000*i);
@@ -116,10 +115,62 @@ int main(int argc, char **argv) {
   std::cout<<"]"<<std::endl;
   std::cout<<"***********************************"<<std::endl;*/
 
+  //Setup Connection
+  std::unique_ptr<CSocket> sock = ENCRYPTO::EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
+  sci::NetIO* ioArr[2];
+  osuCrypto::IOService ios;
+  osuCrypto::Channel chl;
+  osuCrypto::Session *ep;
+  std::string name = "n";
+
+  if(context.role == SERVER) {
+    ioArr[0] = new sci::NetIO(nullptr, context.port+1);
+    ioArr[1] = new sci::NetIO(nullptr, context.port+2);
+    ep= new osuCrypto::Session(ios, context.address, context.port + 3, osuCrypto::SessionMode::Server,
+                          name);
+    chl = ep->addChannel(name, name);
+  } else {
+    ioArr[0] = new sci::NetIO(context.address.c_str(), context.port+1);
+    ioArr[1] = new sci::NetIO(context.address.c_str(), context.port+2);
+    ep = new osuCrypto::Session(ios, context.address, context.port + 3, osuCrypto::SessionMode::Client,
+                          name);
+    chl = ep->addChannel(name, name);
+  }
+
+  ResetCommunication(sock, chl, ioArr, context);
+  run_circuit_psi(inputs, context, sock, ioArr, chl);
+  PrintTimings(context);
+  AccumulateCommunicationPSI(sock, chl, ioArr, context);
+  PrintCommunication(context);
+
+  //End Connection
+  sock->Close();
+  chl.close();
+  ep->stop();
+  ios.stop();
+
+  for (int i = 0; i < 2; i++) {
+      delete ioArr[i];
+  }
+
+
+  /*
+  switch(context.psm_type) {
+    case ENCRYPTO::PsiAnalyticsContext::PSM1: {
+
+    }
+    break;
+    case ENCRYPTO::PsiAnalyticsContext::PSM2: {
+
+    }
+    break;
+  }
+
 
   //auto inputs = ENCRYPTO::GeneratePseudoRandomElements(context.neles, gen_bitlen);
   ENCRYPTO::run_gcf_tab_psi(inputs, context);
   std::cout << "PSI circuit successfully executed" << std::endl;
   PrintTimingsNew(context);
+  */
   return EXIT_SUCCESS;
 }

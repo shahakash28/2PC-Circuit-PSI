@@ -1,3 +1,26 @@
+/*
+ * Original Work copyright (c) 2021 Microsoft Research
+ * Modified Work copyright (c) 2021 Microsoft Research
+ *
+ * Original Authors: Deevashwer Rathee, Mayank Rathee
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whome the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+ * A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * Modified by Akash Shah
+ */
 #ifndef BATCHEQUALITY_H__
 #define BATCHEQUALITY_H__
 #include "EzPC/SCI/src/OT/emp-ot.h"
@@ -10,7 +33,6 @@
 using namespace sci;
 using namespace std;
 
-//struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
 
 template<typename IO>
 class BatchEquality {
@@ -27,7 +49,7 @@ class BatchEquality {
 		Triple* triples_std;
     uint8_t* leaf_eq;
 		uint8_t* digits;
-		uint8_t** leaf_ot_messages; // (num_digits * num_cmps) X beta_pow (=2^beta)
+		uint8_t** leaf_ot_messages;
 
 
 		BatchEquality(int party,
@@ -84,7 +106,7 @@ class BatchEquality {
   		} else {
 				radixArrSize = num_cmps;
   		}
-			
+
 			digits = new uint8_t[num_digits*radixArrSize];
 			leaf_eq = new uint8_t[num_digits*batch_size*num_cmps];
 
@@ -171,10 +193,9 @@ class BatchEquality {
 				clock_gettime(CLOCK_MONOTONIC, &locfinish);
 				double total_time = (lomfinish.tv_sec - lomstart.tv_sec);
 				total_time += (lomfinish.tv_nsec - lomstart.tv_nsec) / 1000000000.0;
-				std::cout<<"Leaf OT Message Time: "<<total_time<<std::endl;
+
 				total_time = (locfinish.tv_sec - locstart.tv_sec);
 				total_time += (locfinish.tv_nsec - locstart.tv_nsec) / 1000000000.0;
-				std::cout<<"Leaf OT Comm. Time "<<total_time<<std::endl;
 
 			}
 			else // party = sci::BOB
@@ -222,7 +243,6 @@ class BatchEquality {
 			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;
 			/*for(int i=0; i<10; i++) {
 				for(int j=0;j<batch_size; j++) {
 					std::cout<< (int)leaf_eq[j*num_digits*num_cmps+ i] << " ";
@@ -262,7 +282,6 @@ class BatchEquality {
       clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"Leaf OT-Time: "<<total_time<<std::endl;
     }
 
 		void traverse_and_compute_ANDs(){
@@ -351,7 +370,6 @@ class BatchEquality {
 			clock_gettime(CLOCK_MONOTONIC, &finish);
 			double total_time = (finish.tv_sec - start.tv_sec);
   		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-      std::cout<<"AND Time: "<<total_time<<std::endl;
 
 			/*std::cout<<"Some Outputs"<< std::endl;
 
@@ -370,7 +388,7 @@ class BatchEquality {
 
 		}
 
-		void AND_step_1(uint8_t* ei, // evaluates batch of 8 ANDs
+		/*void AND_step_1(uint8_t* ei, // evaluates batch of 8 ANDs
 				uint8_t* fi,
 				uint8_t* xi,
 				uint8_t* yi,
@@ -407,7 +425,7 @@ class BatchEquality {
 				temp_z ^= ci[i/8];
 				sci::uint8_to_bool(zi+i, temp_z, 8);
 			}
-		}
+		}*/
 };
 
 
@@ -423,12 +441,9 @@ void generate_triples_thread(BatchEquality<NetIO>* compare) {
 void perform_batch_equality(uint64_t* inputs, BatchEquality<NetIO>* compare, uint8_t* res_shares) {
 
     std::thread cmp_threads[2];
-		std::cout<<"CP 1"<<std::endl;
 		compare->setLeafMessages(inputs);
-		std::cout<<"CP 2"<<std::endl;
     cmp_threads[0] = std::thread(computeLeafOTsThread, compare);
     cmp_threads[1] = std::thread(generate_triples_thread, compare);
-    std::cout<<"CP 3"<<std::endl;
     for (int i = 0; i < 2; ++i) {
       cmp_threads[i].join();
     }

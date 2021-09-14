@@ -61,7 +61,7 @@ elseif (NOT HashingTables_FOUND AND NOT TARGET HashingTables::hashingtables)
 endif ()
 
 # we need to set these compile flags globally to compile compile libOTe and its dependencies
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -no-pie -pthread -maes -msse2 -msse3 -msse4.1 -mpclmul -mavx -mavx2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -no-pie -pthread -maes -msse2 -msse3 -mrdrnd -msse4.1 -mpclmul -mavx -mavx2")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
 
@@ -82,5 +82,19 @@ endif ()
 
 add_dependencies(libOTe relic_s)
 
-add_subdirectory(extern/EzPC/SCI)
+find_package(EzPC QUIET)
+if (EzPC_FOUND)
+    message(STATUS "Found EzPC")
+elseif (NOT EzPC_FOUND)
+    message("EzPC was not found: add EzPC subdirectory")
+    if (NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/EzPC/SCI/CMakeLists.txt")
+        find_package(Git REQUIRED)
+        message("initialize Git submodule: extern/EzPC")
+        execute_process(COMMAND git submodule update --init extern/EzPC
+                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+    endif ()
+    add_subdirectory(extern/EzPC/SCI)
+endif ()
+
+#add_subdirectory(extern/EzPC/SCI)
 add_subdirectory(src)

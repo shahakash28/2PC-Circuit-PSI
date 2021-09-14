@@ -1,4 +1,6 @@
 #pragma once
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
 // \author Oleksandr Tkachenko
 // \email tkachenko@encrypto.cs.tu-darmstadt.de
@@ -21,6 +23,8 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 namespace ENCRYPTO {
 
@@ -30,34 +34,39 @@ struct PsiAnalyticsContext {
   uint64_t bitlen;
   uint64_t neles;
   uint64_t nbins;
-  uint64_t notherpartyselems;
-  uint64_t nthreads;
-  uint64_t nfuns;  //< number of hash functions in the hash table
-  uint64_t threshold;
-  uint64_t polynomialsize;
-  uint64_t polynomialbytelength;
-  uint64_t nmegabins;
+  uint64_t nfuns;  // number of hash functions in the hash table
+  uint64_t radix;
   double epsilon;
   uint64_t ffuns;
   uint64_t fbins;
   double fepsilon;
   std::string address;
 
-  enum {
-    NONE,                // only calculate the equality of the bin elements - used for benchmarking
-    THRESHOLD,           // 1 if T > PSI, 0 otherwise
-    SUM,                 // number of matched elements
-    SUM_IF_GT_THRESHOLD  // number of matched elements if T > PSI, 0 otherwise
-  } analytics_type;
+  std::vector<uint64_t> sci_io_start;
 
-  const uint64_t maxbitlen = 61;
+  uint64_t sentBytesOPRF;
+  uint64_t recvBytesOPRF;
+  uint64_t sentBytesHint;
+  uint64_t recvBytesHint;
+  uint64_t sentBytesSCI;
+  uint64_t recvBytesSCI;
+
+  uint64_t sentBytes;
+  uint64_t recvBytes;
+
+  enum {
+    PSM1,
+    PSM2
+  } psm_type;
 
   struct {
     double hashing;
-    double base_ots_aby;
+    double base_ots_sci;
     double base_ots_libote;
     double oprf;
-    double opprf;
+    double hint_transmission;
+    double hint_computation;
+    double psm_time;
     double polynomials;
     double polynomials_transmission;
     double oprf2;

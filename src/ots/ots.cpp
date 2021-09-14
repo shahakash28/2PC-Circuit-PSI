@@ -1,3 +1,5 @@
+// Original Work ots.cpp copyright (c) Oleksandr Tkachenko
+// Modified Work block_op_ots.cpp copyright (c) 2021 Microsoft Research
 //
 // \file ots.cpp
 // \author Oleksandr Tkachenko
@@ -21,6 +23,8 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 #include "ots.h"
 
@@ -31,12 +35,11 @@ using milliseconds_ratio = std::ratio<1, 1000>;
 using duration_millis = std::chrono::duration<double, milliseconds_ratio>;
 
 namespace ENCRYPTO {
+
 // Client
-std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs,
-                                       ENCRYPTO::PsiAnalyticsContext &context, bool switchaddress) {
-  std::string address;
+std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inputs, osuCrypto::Channel& recvChl,
+                                       ENCRYPTO::PsiAnalyticsContext &context) {
   std::size_t numOTs = inputs.size();
-    std::cout<<"Num OTs: "<< numOTs<<std::endl;
   osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
 
   osuCrypto::KkrtNcoOtReceiver recv;
@@ -47,21 +50,9 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   //  3) numOTs = number of OTs that we will perform
   recv.configure(false, 40, symsecbits);
 
-  // set up networking
-  std::string name = "n";
-  osuCrypto::IOService ios;
-  if(switchaddress)
-    address="40.118.124.169";
-  else
-    address=context.address;
-  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Client,
-                        name);
-  auto recvChl = ep.addChannel(name, name);
-  const auto indepenendent_start_time = std::chrono::system_clock::now();
   const auto baseots_start_time = std::chrono::system_clock::now();
   // the number of base OT that need to be done
   osuCrypto::u64 baseCount = recv.getBaseOTCount();
-
   std::vector<osuCrypto::block> baseRecv(baseCount);
 
   std::vector<std::array<osuCrypto::block, 2>> baseSend(baseCount);
@@ -77,9 +68,6 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   recv.init(numOTs, prng, recvChl);
 
   std::vector<osuCrypto::block> blocks(numOTs), receiver_encoding(numOTs);
-  const auto indepenendent_end_time = std::chrono::system_clock::now();
-  const duration_millis indepenendent_duration =indepenendent_end_time - indepenendent_start_time;
-  std::cout << "indepenendent time: " << indepenendent_duration.count()<<std::endl;
 
   for (auto i = 0ull; i < inputs.size(); ++i) {
     blocks.at(i) = osuCrypto::toBlock(inputs[i]);
@@ -96,18 +84,12 @@ std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t> &inpu
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
 
-  recvChl.close();
-  ep.stop();
-  ios.stop();
-
   return receiver_encoding;
 }
 
 // Server
 std::vector<std::vector<osuCrypto::block>> ot_sender(
-    const std::vector<std::vector<std::uint64_t>> &inputs, ENCRYPTO::PsiAnalyticsContext &context, bool switchaddress) {
-  std::string address;
-  const auto indepenendent_start_time = std::chrono::system_clock::now();
+    const std::vector<std::vector<std::uint64_t>> &inputs, osuCrypto::Channel& sendChl, ENCRYPTO::PsiAnalyticsContext &context) {
   std::size_t numOTs = inputs.size();
   osuCrypto::PRNG prng(_mm_set_epi32(4253465, 3434565, 234435, 23987025));
   osuCrypto::KkrtNcoOtSender sender;
@@ -116,16 +98,6 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   //  2) 40  =  statistical security param.
   //  3) numOTs = number of OTs that we will perform
   sender.configure(false, 40, 128);
-
-  std::string name = "n";
-  osuCrypto::IOService ios;
-  if(switchaddress)
-    address="0.0.0.0";
-  else
-    address=context.address;
-  osuCrypto::Session ep(ios, address, context.port + 1, osuCrypto::SessionMode::Server,
-                        name);
-  auto sendChl = ep.addChannel(name, name);
 
   const auto baseots_start_time = std::chrono::system_clock::now();
 
@@ -136,7 +108,6 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   choices.randomize(prng);
 
   baseOTs.receive(choices, baseRecv, prng, sendChl, 1);
-
   sender.setBaseOts(baseRecv, choices);
   const auto baseots_end_time = std::chrono::system_clock::now();
   const duration_millis baseOTs_duration = baseots_end_time - baseots_start_time;
@@ -145,10 +116,6 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   const auto OPRF_start_time = std::chrono::system_clock::now();
   sender.init(numOTs, prng, sendChl);
 
-  const auto indepenendent_end_time = std::chrono::system_clock::now();
-  const duration_millis indepenendent_duration =indepenendent_end_time - indepenendent_start_time;
-  std::cout << "indepenendent time: " << indepenendent_duration.count()<<std::endl;
-
   std::vector<std::vector<osuCrypto::block>> inputs_as_blocks(numOTs), outputs_as_blocks(numOTs);
   for (auto i = 0ull; i < numOTs; ++i) {
     outputs_as_blocks.at(i).resize(inputs.at(i).size());
@@ -156,6 +123,7 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
       inputs_as_blocks.at(i).push_back(osuCrypto::toBlock(var));
     }
   }
+
   sender.recvCorrection(sendChl, numOTs);
 
   for (auto i = 0ull; i < numOTs; ++i) {
@@ -169,9 +137,6 @@ std::vector<std::vector<osuCrypto::block>> ot_sender(
   const duration_millis OPRF_duration = OPRF_end_time - OPRF_start_time;
   context.timings.oprf = OPRF_duration.count();
 
-  sendChl.close();
-  ep.stop();
-  ios.stop();
   return outputs_as_blocks;
 }
 

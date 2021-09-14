@@ -1,7 +1,9 @@
 #pragma once
 
+// Original Work ots.cpp copyright (c) Oleksandr Tkachenko
+// Modified Work block_op_ots.cpp copyright (c) 2021 Microsoft Research
 //
-// \file ots.h
+// \file ots.cpp
 // \author Oleksandr Tkachenko
 // \email tkachenko@encrypto.cs.tu-darmstadt.de
 // \organization Cryptography and Privacy Engineering Group (ENCRYPTO)
@@ -23,6 +25,8 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 #include <cinttypes>
 #include <string>
@@ -39,10 +43,9 @@
 
 namespace ENCRYPTO {
 
-std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t>& inputs,
-                                       ENCRYPTO::PsiAnalyticsContext& context, bool switchaddress);
+std::vector<osuCrypto::block> ot_receiver(const std::vector<std::uint64_t>& inputs, osuCrypto::Channel& recvChl,
+                                       ENCRYPTO::PsiAnalyticsContext& context);
 
 std::vector<std::vector<osuCrypto::block>> ot_sender(
-    const std::vector<std::vector<std::uint64_t>>& inputs, ENCRYPTO::PsiAnalyticsContext& context, bool switchaddress);
-
+    const std::vector<std::vector<std::uint64_t>>& inputs, osuCrypto::Channel& sendChl, ENCRYPTO::PsiAnalyticsContext& context);
 }

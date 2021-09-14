@@ -1,4 +1,6 @@
 #pragma once
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
 // \author Oleksandr Tkachenko
 // \email tkachenko@encrypto.cs.tu-darmstadt.de
@@ -21,11 +23,15 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 #include "abycore/aby/abyparty.h"
 #include "abycore/circuit/share.h"
 #include "helpers.h"
 #include "config.h"
+#include "EzPC/SCI/src/utils/emp-tool.h"
+#include "ots/ots.h"
 
 #include <vector>
 
@@ -33,25 +39,7 @@
 #define S_CONST 18286333650295995643
 namespace ENCRYPTO {
 
-uint64_t run_psi_analytics(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
-uint64_t run_gcf_tab_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context);
-
-void OpprgPsiClient(const std::vector<uint64_t> &elements,
-                                     PsiAnalyticsContext &context);
-
-void OpprgPsiServer(const std::vector<uint64_t> &elements,
-                                     PsiAnalyticsContext &context);
-
-void InterpolatePolynomials(std::vector<uint64_t> &polynomials,
-                            std::vector<uint64_t> &content_of_bins,
-                            const std::vector<std::vector<uint64_t>> &masks,
-                            PsiAnalyticsContext &context);
-
-void InterpolatePolynomialsPaddedWithDummies(
-    std::vector<uint64_t>::iterator polynomial_offset,
-    std::vector<uint64_t>::const_iterator random_value_in_bin,
-    std::vector<std::vector<uint64_t>>::const_iterator masks_for_elems_in_bin,
-    std::size_t nbins_in_megabin, PsiAnalyticsContext &context);
+void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsContext &context, std::unique_ptr<CSocket> &sock, sci::NetIO* ioArr[2], osuCrypto::Channel &chl);
 
 std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_t port,
                                              e_role role);
@@ -59,5 +47,9 @@ std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_
 std::size_t PlainIntersectionSize(std::vector<std::uint64_t> v1, std::vector<std::uint64_t> v2);
 
 void PrintTimings(const PsiAnalyticsContext &context);
-void PrintTimingsNew(const PsiAnalyticsContext &context);
+void PrintCommunication(const PsiAnalyticsContext &context);
+
+void ResetCommunication(std::unique_ptr<CSocket> &sock, osuCrypto::Channel &chl, sci::NetIO* ioArr[2], PsiAnalyticsContext &context);
+void AccumulateCommunicationPSI(std::unique_ptr<CSocket> &sock, osuCrypto::Channel &chl, sci::NetIO* ioArr[2], PsiAnalyticsContext &context);
+void PrintCommunication(PsiAnalyticsContext &context);
 }

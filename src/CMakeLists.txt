@@ -15,8 +15,6 @@ endif ()
 add_library(src
         common/functionalities.cpp
         common/helpers.cpp
-        polynomials/Mersenne.cpp
-        polynomials/Poly.cpp
         common/table_opprf.cpp
         ots/ots.cpp
         )
@@ -29,7 +27,7 @@ target_compile_options(src
         PRIVATE
         -march=native
         -ffunction-sections -mpclmul -mbmi2 -maes
-        -mavx -msse2 -msse3 -msse4.1
+        -mavx -msse2 -msse3 -msse4.1 -mrdrnd
         -Wall -Wno-strict-overflow -Wno-ignored-attributes -Wno-parentheses)
 
 target_link_libraries(src INTERFACE

@@ -1,3 +1,5 @@
+// Original Work copyright (c) Oleksandr Tkachenko
+// Modified Work copyright (c) 2021 Microsoft Research
 //
 // \author Oleksandr Tkachenko
 // \email tkachenko@encrypto.cs.tu-darmstadt.de
@@ -20,6 +22,8 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// Modified by Akash Shah
 
 #include "helpers.h"
 
