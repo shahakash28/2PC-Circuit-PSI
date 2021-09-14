@@ -120,27 +120,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     //OPRF Phase
     auto masks_with_dummies = ot_receiver(cuckoo_table_v, chl, context);
 
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The OPRF outputs are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      std::cout<<"( "<<i<<", "<<masks_with_dummies[i]<<"), ";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;
-    */
-
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The 3-OPRF outputs are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      osuCrypto::PRNG prng(masks_with_dummies[i], 2);
-      for(int j=0;j<3;j++) {
-            std::cout<<"( "<<i<<"-"<< j<<", "<<prng.get<uint64_t>()<<"), ";
-      }
-        std::cout<<"\n";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
-
     //Hint Computation Phase
     std::vector<uint64_t> garbled_cuckoo_filter;
     garbled_cuckoo_filter.reserve(context.fbins);
@@ -152,28 +131,13 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     context.timings.hint_transmission = hint_trans.count();
 
     const auto filter_start_time = std::chrono::system_clock::now();
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
-    for(int i=0;i<context.fbins;i++) {
-      std::cout<<"( "<<i<<", "<<garbled_cuckoo_filter[i]<<"), ";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
+
     ENCRYPTO::CuckooTable garbled_cuckoo_table(static_cast<std::size_t>(context.fbins));
     garbled_cuckoo_table.SetNumOfHashFunctions(context.ffuns);
     garbled_cuckoo_table.Insert(cuckoo_table_v);
     auto addresses = garbled_cuckoo_table.GetElementAddresses();
 
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The Addresses are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      for(int j=0;j<context.ffuns;j++) {
-        std::cout<<"( "<<i<<"-"<<j<<", "<<addresses[i*context.ffuns+j]<<"), ";
-      }
-      std::cout<<"\n";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
+
     if(context.psm_type == PsiAnalyticsContext::PSM1) {
       for(int i=0; i<context.nbins; i++) {
         osuCrypto::PRNG prngo(masks_with_dummies[i], 2);
@@ -189,15 +153,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
         }
       }
     }
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The Contents of Bins are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      for(int j=0;j<context.ffuns;j++) {
-        std::cout<<"( "<<i<<", "<<content_of_bins[i*context.ffuns+j]<<"), ";
-      }
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
+
     const auto filter_end_time = std::chrono::system_clock::now();
     const duration_millis hint_duration = filter_end_time - filter_start_time;
     context.timings.hint_computation = hint_duration.count();
@@ -207,6 +163,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
         content_of_bins[3*context.nbins+i]=value;
     }
 
+    //PSM Phase
     const auto baseots_start_time = std::chrono::system_clock::now();
     otpackArr[0] = new OTPack<NetIO>(ioArr[0], party, b, l);
     otpackArr[1] = new OTPack<NetIO>(ioArr[1], 3-party, b, l);
@@ -229,14 +186,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
       for( int i=0; i<context.nbins; i++) {
         content_of_bins[i] = tab_prng.get<uint64_t>();
       }
-
-      /*std::cout<<"***********************************"<<std::endl;
-      std::cout<<"The actual contents are: ["<<std::endl;
-      for(int i=0;i<context.nbins;i++) {
-        std::cout<<"( "<<i<<", "<<content_of_bins[i]<<"), ";
-      }
-      std::cout<<"]"<<std::endl;
-      std::cout<<"***********************************"<<std::endl;*/
 
       std::vector<osuCrypto::block> padding_vals;
       padding_vals.reserve(num_cmps);
@@ -291,7 +240,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
           }
           ctr++;
         }
-      //table_opprf[i*4+]
       }
 
       ave_ctr = ave_ctr/context.nbins;
@@ -301,16 +249,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
       //Send table
       sock->Send(table_opprf.data(), context.nbins * ts* sizeof(uint64_t));
 
-      /*std::cout<<"***********************************"<<std::endl;
-      std::cout<<"The Contents of Bins are: ["<<std::endl;
-      for(int i=0;i<context.nbins;i++) {
-        for(int j=0;j<context.ffuns;j++) {
-          std::cout<<"( "<<i<<", "<<content_of_bins[i*context.ffuns+j]<<"), ";
-        }
-      }
-      std::cout<<"]"<<std::endl;
-      std::cout<<"***********************************"<<std::endl;*/
-      //return content_of_bins;
       uint8_t* res_shares = new uint8_t[num_cmps];
       for(int i=0; i<pad; i++) {
           content_of_bins[context.nbins+i]=value;
@@ -326,7 +264,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
     context.timings.total = total_duration.count();
 
-  } else {
+  } else { //Server
     content_of_bins.reserve(num_cmps);
     const auto clock_time_total_start = std::chrono::system_clock::now();
 
@@ -340,7 +278,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     //simple_table.Print();
 
     auto simple_table_v = simple_table.AsRaw2DVector();
-    // context.simple_table = simple_table_v;
     const auto hashing_end_time = std::chrono::system_clock::now();
     const duration_millis hashing_duration = hashing_end_time - hashing_start_time;
     context.timings.hashing = hashing_duration.count();
@@ -348,18 +285,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
 
     auto masks = ot_sender(simple_table_v, chl, context);
 
-    /*std::cout<<"Size of Hash Table:"<< context.nbins <<std::endl;
-
-    std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The OPRF outputs are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      uint64_t size = masks[i].size();
-      for(int j=0;j<size;j++) {
-        std::cout<<"( "<<i<<", "<<masks[i][j]<<"), ";
-      }
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
    //Hint Computation
    const auto filter_start_time = std::chrono::system_clock::now();
    uint64_t bufferlength = (uint64_t)ceil(context.nbins/2.0);
@@ -368,14 +293,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
    for( int i=0; i<context.nbins; i++) {
      content_of_bins.push_back(prng.get<uint64_t>());
    }
-
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The Bin Random Values are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      std::cout<<"( "<<i<<", "<<content_of_bins[i]<<"), ";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
 
     std::unordered_map<uint64_t,hashlocmap> tloc;
     std::vector<uint64_t> filterinputs;
@@ -404,21 +321,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     bufferlength = (uint64_t)ceil(context.fbins - 3*context.nbins);
     osuCrypto::PRNG prngo(osuCrypto::sysRandomSeed(), bufferlength);
 
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The 3-OPRF outputs are: ["<<std::endl;
-    for(int i=0;i<context.nbins;i++) {
-      uint64_t size = masks[i].size();
-      for(int j=0;j<size;j++) {
-        osuCrypto::PRNG prng(masks[i][j], 2);
-        for(int k=0;k<3;k++){
-            std::cout<<"( "<<i<<"-"<< j<<"-"<< k <<", "<<prng.get<uint64_t>()<<"), ";
-        }
-        std::cout<<"\n";
-      }
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
-
     for(int i=0; i<context.fbins; i++){
       if(!cuckoo_table.hash_table_.at(i).IsEmpty()) {
         uint64_t element = cuckoo_table.hash_table_.at(i).GetElement();
@@ -438,13 +340,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis hint_duration = filter_end_time - filter_start_time;
     context.timings.hint_computation = hint_duration.count();
 
-    /*std::cout<<"***********************************"<<std::endl;
-    std::cout<<"The Garbled Cuckoo Filter contents are: ["<<std::endl;
-    for(int i=0;i<context.fbins;i++) {
-      std::cout<<"( "<<i<<", "<<garbled_cuckoo_filter[i]<<"), ";
-    }
-    std::cout<<"]"<<std::endl;
-    std::cout<<"***********************************"<<std::endl;*/
     const auto ftrans_start_time = std::chrono::system_clock::now();
     sock->Send(garbled_cuckoo_filter.data(), context.fbins * sizeof(uint64_t));
     const auto ftrans_end_time = std::chrono::system_clock::now();
@@ -494,13 +389,6 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
             actual_contents_of_bins[i] = reinterpret_cast<uint64_t *>(&masks_with_dummies[i])[0] ^ table_opprf[ts*i+bitaddress];
       }
 
-      /*std::cout<<"***********************************"<<std::endl;
-      std::cout<<"The actual contents are: ["<<std::endl;
-      for(int i=0;i<context.nbins;i++) {
-        std::cout<<"( "<<i<<", "<<actual_contents_of_bins[i]<<"), ";
-      }
-      std::cout<<"]"<<std::endl;
-      std::cout<<"***********************************"<<std::endl;*/
       for(int i=0; i<pad; i++) {
         actual_contents_of_bins[context.nbins+i]=value;
       }
@@ -516,15 +404,10 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
     context.timings.total = total_duration.count();
   }
-
-  /*const auto clock_time_total_end = std::chrono::system_clock::now();
-  const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
-  context.timings.total = total_duration.count();*/
 }
 
 std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_t port,
                                              e_role role) {
-  //std::cout<<"EstablishConnection Started" << std::endl;
   std::unique_ptr<CSocket> socket;
   if (role == SERVER) {
     socket = Listen(address.c_str(), port);
@@ -532,7 +415,6 @@ std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_
     socket = Connect(address.c_str(), port);
   }
   assert(socket);
-  //std::cout<<"EstablishConnection Successful" << std::endl;
   return socket;
 }
 

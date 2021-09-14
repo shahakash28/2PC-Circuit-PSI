@@ -81,7 +81,6 @@ class Equality {
 			total_triples_count = num_triples*num_cmps;
       //total_triples
 			this->triples_std = new Triple(num_triples*num_cmps, true);
-			//this->triples_std_1 = new Triple((num_triples)*batch_size*num_cmps, true);
 		}
 
 		~Equality()
@@ -92,33 +91,17 @@ class Equality {
 		void computeLeafOTs(uint64_t* data)
 		{
 
-			struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
-
-			clock_gettime(CLOCK_MONOTONIC, &start);
 			uint8_t* digits; // num_digits * num_cmps
 
 			digits = new uint8_t[num_digits*num_cmps];
 			leaf_eq = new uint8_t[num_digits*num_cmps];
-      /*std::cout<<"Some inputs inside are: "<<std::endl;
-      for(int i=0;i<10;i++)
-        std::cout<<data[i]<<std::endl;
-      std::cout<<"+++++++++++++++++"<<std::endl;*/
 
-			// Extract radix-digits from data
 			for(int i = 0; i < num_digits; i++) // Stored from LSB to MSB
 				for(int j = 0; j < num_cmps; j++)
 					if ((i == num_digits-1) && (r != 0))
 						digits[i*num_cmps+j] = (uint8_t)(data[j] >> i*beta) & mask_r;
 					else
 						digits[i*num_cmps+j] = (uint8_t)(data[j] >> i*beta) & mask_beta;
-      /*std::cout<<"Some digits:"<<std::endl;
-			for(int i=0; i<10; i++) {
-				for(int j=0; j<num_digits; j++) {
-					std::cout<< (int)digits[j*num_cmps+i]<<" ";
-				}
-				std::cout<<std::endl;
-			}
-			std::cout<<"+++++++++++++++"<<std::endl;*/
 
 			if(party == sci::ALICE)
 			{
@@ -127,7 +110,6 @@ class Equality {
 				for(int i = 0; i < num_digits*num_cmps; i++)
 					leaf_ot_messages[i] = new uint8_t[beta_pow];
 
-        clock_gettime(CLOCK_MONOTONIC, &lomstart);
 				// Set Leaf OT messages
 				triple_gen->prg->random_bool((bool*)leaf_eq, num_digits*num_cmps);
 
@@ -148,12 +130,7 @@ class Equality {
 						}
 					}
 				}
-				clock_gettime(CLOCK_MONOTONIC, &lomfinish);
-
-				clock_gettime(CLOCK_MONOTONIC, &locstart);
-
 				// Perform Leaf OTs
-				//cout<<"I am Sender in Leaf OT"<<endl;
 #ifdef WAN_EXEC
 				otpack->kkot_beta->send(leaf_ot_messages, num_cmps*(num_digits), 1);
 #else
@@ -184,17 +161,10 @@ class Equality {
 				for(int i = 0; i < num_digits*num_cmps; i++)
 					delete[] leaf_ot_messages[i];
 				delete[] leaf_ot_messages;
-				clock_gettime(CLOCK_MONOTONIC, &locfinish);
-				double total_time = (lomfinish.tv_sec - lomstart.tv_sec);
-				total_time += (lomfinish.tv_nsec - lomstart.tv_nsec) / 1000000000.0;
-				total_time = (locfinish.tv_sec - locstart.tv_sec);
-				total_time += (locfinish.tv_nsec - locstart.tv_nsec) / 1000000000.0;
-
 			}
 			else // party = sci::BOB
-			{ //triple_gen->generate(3-party, triples_std, _16KKOT_to_4OT);
+			{
 				// Perform Leaf OTs
-				//cout<<"I am receiver in Leaf OT"<<endl;
 #ifdef WAN_EXEC
 				otpack->kkot_beta->recv(leaf_eq, digits, num_cmps*(num_digits), 1);
 #else
@@ -225,30 +195,7 @@ class Equality {
 					otpack->kkot_beta->recv(leaf_eq, digits, num_cmps*(num_digits), 1);
 				}
 #endif
-
-				// Extract equality result from leaf_res_cmp
-				/*for(int i = 0; i < num_digits*num_cmps; i++) {
-		      for(int j=batch_size-1; j>= 0; j--) {
-						leaf_eq[j*num_digits*num_cmps+ i] = (leaf_eq[i]>>j) & 1;
-					}
-				}*/
 			}
-
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-
-      /*std::cout<<"Some leaf ot messages:"<<std::endl;
-			for(int i=0; i<10; i++) {
-				for(int j=0; j<num_digits; j++) {
-					std::cout<< (int)leaf_eq[j*num_cmps+i]<<" ";
-				}
-				std::cout<<std::endl;
-			}
-			std::cout<<"+++++++++++++++"<<std::endl;*/
-			/*for (int i = 0; i < num_cmps; i++)
-				res[i] = leaf_res_cmp[i];
-     */
 			// Cleanup
 			delete[] digits;
 		}
@@ -268,27 +215,10 @@ class Equality {
 		 **************************************************************************************************/
 
     void generate_triples() {
-			struct timespec start, finish;
-			clock_gettime(CLOCK_MONOTONIC, &start);
       triple_gen->generate(party, triples_std, _16KKOT_to_4OT);
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
     }
 
 		void traverse_and_compute_ANDs(uint8_t* z){
-
-			struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
-
-			//if(sci::ALICE) {
-
-			//}
-
-			//std::cout << "Num Triples are: " << num_triples<< std::endl;
-
-			clock_gettime(CLOCK_MONOTONIC, &start);
-
-			//clock_gettime(CLOCK_MONOTONIC, &start);
 			// Combine leaf OT results in a bottom-up fashion
 			int counter_std = 0, old_counter_std = 0;
 			int counter_corr = 0, old_counter_corr = 0;
@@ -297,7 +227,6 @@ class Equality {
 			uint8_t* fi = new uint8_t[(num_triples*num_cmps)/8];
 			uint8_t* e = new uint8_t[(num_triples*num_cmps)/8];
 			uint8_t* f = new uint8_t[(num_triples*num_cmps)/8];
-      //std::cout<<"Size of auxes: "<< (num_triples*num_cmps)/8 <<std::endl;
 
 			int old_triple_count=0, triple_count=0;
 
@@ -305,31 +234,15 @@ class Equality {
 				int counter=0;
 				for(int j = 0; j < num_digits and j+i < num_digits; j += 2*i) {
 						for(int m=0; m < num_cmps; m+=8) {
-							//std::cout<<"Comparison Number "<< m << std::endl;
-							/*if(m==0) {
-								std::cout<<"Let us check beaver triples"<<std::endl;
-								std::cout<<"a [j="<<j<<"]: "<<std::bitset<8>(triples_std->ai[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
-								std::cout<<"b [j="<<j<<"]: "<<std::bitset<8>(triples_std->bi[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
-								std::cout<<"c [j="<<j<<"]: "<<std::bitset<8>(triples_std->ci[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
-							}*/
 							ei[(counter*num_cmps + m)/8] = triples_std->ai[(triple_count+ counter*num_cmps + m)/8];
 							fi[(counter*num_cmps + m)/8] = triples_std->bi[(triple_count+ counter*num_cmps + m)/8];
-							/*if(m==0) {
-								std::cout<<"ei [j="<<j<<"]: "<<std::bitset<8>(ei[(counter*num_cmps + m)/8])<<std::endl;
-								std::cout<<"fi [j="<<j<<"]: "<<std::bitset<8>(fi[(counter*num_cmps + m)/8])<<std::endl;
-							}*/
 							ei[(counter*num_cmps + m)/8] ^= sci::bool_to_uint8(leaf_eq + j*num_cmps + m, 8);
 							fi[(counter*num_cmps + m)/8] ^= sci::bool_to_uint8(leaf_eq + (j+i)*num_cmps + m, 8);
-							/*if(m==0) {
-								std::cout<<"ei [j="<<j<<"]: "<<std::bitset<8>(ei[(counter*num_cmps + m)/8])<<std::endl;
-								std::cout<<"fi [j="<<j<<"]: "<<std::bitset<8>(fi[(counter*num_cmps + m)/8])<<std::endl;
-							}*/
 						}
 					counter++;
 				}
 				triple_count += counter*num_cmps;
 				int comm_size = (counter*num_cmps)/8;
-        //std::cout<<
 
 				if(party == sci::ALICE)
 				{
@@ -347,19 +260,8 @@ class Equality {
 				}
 
 				for(int i = 0; i < comm_size; i++) {
-					/*if(i%(num_cmps/8)==0) {
-            std::cout<<"e [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(e[i])<<std::endl;
-						std::cout<<"f [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(f[i])<<std::endl;
-
-            std::cout<<"ei [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(ei[i])<<std::endl;
-						std::cout<<"fi [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(fi[i])<<std::endl;
-					}*/
 					e[i] ^= ei[i];
 					f[i] ^= fi[i];
-					/*if(i%(num_cmps/8)==0) {
-						std::cout<<"e [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(e[i])<<std::endl;
-						std::cout<<"f [j="<<i/(num_cmps/8)<<"]: "<<std::bitset<8>(f[i])<<std::endl;
-					}*/
 				}
 
 				counter=0;
@@ -370,54 +272,18 @@ class Equality {
 								temp_z = e[(counter*num_cmps + m)/8] & f[(counter*num_cmps + m)/8];
 							else
 								temp_z = 0;
-							/*if(m==0) {
-	 							 std::cout<<"temp_z [j="<<j<<"]: "<<std::bitset<8>(temp_z)<<std::endl;
-	 						 }*/
-
 							temp_z ^= f[(counter*num_cmps + m)/8] & triples_std->ai[(old_triple_count+ counter*num_cmps + m)/8];
-							/*if(m==0) {
-	 							 std::cout<<"temp_z [j="<<j<<"]: "<<std::bitset<8>(temp_z)<<std::endl;
-	 						 }*/
 							temp_z ^= e[(counter*num_cmps + m)/8] & triples_std->bi[(old_triple_count+ counter*num_cmps + m)/8];
-							/*if(m==0) {
-	 							 std::cout<<"temp_z [j="<<j<<"]: "<<std::bitset<8>(temp_z)<<std::endl;
-	 						 }*/
 							temp_z ^= triples_std->ci[(old_triple_count+ counter*num_cmps + m)/8];
-							/*if(m==0) {
-	 							 std::cout<<"temp_z [j="<<j<<"]: "<<std::bitset<8>(temp_z)<<std::endl;
-	 						 }*/
-
-               /*if(m==0) {
-								 std::cout<<"Let us check beaver triples"<<std::endl;
-								 std::cout<<"Triples Id: "<< (old_triple_count+ counter*num_cmps + m)/8 <<std::endl;
- 	 							 std::cout<<"a [j="<<j<<"]: "<<std::bitset<8>(triples_std->ai[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
-                 std::cout<<"b [j="<<j<<"]: "<<std::bitset<8>(triples_std->bi[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
-                 std::cout<<"c [j="<<j<<"]: "<<std::bitset<8>(triples_std->ci[(old_triple_count+ counter*num_cmps + m)/8])<<std::endl;
- 	 						 }*/
 							sci::uint8_to_bool(leaf_eq + j*num_cmps + m, temp_z, 8);
 				   }
 					 counter++;
         }
-        /*std::cout<<"Some leaf ot messages: Level " << i<<std::endl;
-  			for(int i=0; i<10; i++) {
-  				for(int j=0; j<num_digits; j++) {
-  					std::cout<< (int)leaf_eq[j*num_cmps+i]<<" ";
-  				}
-  				std::cout<<std::endl;
-  			}
-  			std::cout<<"+++++++++++++++"<<std::endl;*/
 				old_triple_count= triple_count;
 			}
 
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-
-			//std::cout<<"Some Outputs"<< std::endl;
-
 			for(int i=0; i<num_cmps; i++) {
 				z[i]=leaf_eq[i];
-        //std::cout<<(int)leaf_eq[i]<<std::endl;
 			}
 
 			//cleanup
@@ -425,7 +291,6 @@ class Equality {
 			delete[] fi;
 			delete[] e;
 			delete[] f;
-
 		}
 
 		void AND_step_1(uint8_t* ei, // evaluates batch of 8 ANDs
@@ -475,16 +340,10 @@ void equality_thread(int tid, int party, uint64_t* x, uint8_t* z, int lnum_cmps,
     } else {
         compare = new Equality<NetIO>(party, l, b, lnum_cmps, io, otpack);
     }
-    //if(tid == 0) {
-    /*std::cout<<"Some inputs are: "<<std::endl;
-    for(int i=0;i<10;i++)
-      std::cout<<x[i]<<std::endl;
-    std::cout<<"+++++++++++++++++"<<std::endl;*/
     compare->computeLeafOTs(x);
     compare->generate_triples();
 
     compare->traverse_and_compute_ANDs(z);
-    //}
     delete compare;
     return;
 }
@@ -494,12 +353,6 @@ void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string
     uint64_t mask_l;
     if (l == 64) mask_l = -1;
     else mask_l = (1ULL << l) - 1;
-
-  /*uint64_t comm_sent = 0;
-	uint64_t multiThreadedIOStart[2];
-	for(int i=0;i<2;i++){
-		multiThreadedIOStart[i] = ioArr[i]->counter;
-	}*/
 
     std::thread cmp_threads[2];
     int chunk_size = (num_cmps/(8*2))*8;
@@ -520,69 +373,8 @@ void perform_equality(uint64_t* x, int party, int l, int b, int num_cmps, string
     }
 
     for (int i = 0; i < 2; i++) {
-        //delete ioArr[i];
         delete otpackArr[i];
     }
-    /************** Verification ****************/
-    /********************************************/
-   /*
-    switch (party) {
-        case sci::ALICE: {
-            ioArr[0]->send_data(x, 8*num_cmps);
-            ioArr[0]->send_data(z, num_cmps);
-            break;
-        }
-        case sci::BOB: {
-            uint64_t *xi = new uint64_t[num_cmps];
-            uint8_t *zi = new uint8_t[num_cmps];
-            xi = new uint64_t[num_cmps];
-            zi = new uint8_t[num_cmps];
-            ioArr[0]->recv_data(xi, 8*num_cmps);
-            ioArr[0]->recv_data(zi, num_cmps);
-            for(int i = 0; i < num_cmps; i++) {
-                zi[i] ^= z[i];
-                assert(zi[i] == ((xi[i] & mask_l) > (x[i] & mask_l)));
-            }
-            cout << "Secure Comparison Successful" << endl;
-            delete[] xi;
-            delete[] zi;
-            break;
-        }
-    }
-    delete[] x;
-    delete[] z;*/
-
-    /**** Process & Write Benchmarking Data *****/
-    /********************************************/
-    /*
-    string file_addr;
-    switch (party) {
-        case 1: {
-            file_addr = "millionaire-P0.csv";
-            break;
-        }
-        case 2: {
-            file_addr = "millionaire-P1.csv";
-            break;
-        }
-    }
-    bool write_title = true; {
-        fstream result(file_addr.c_str(), fstream::in);
-        if(result.is_open())
-            write_title = false;
-        result.close();
-    }
-    fstream result(file_addr.c_str(), fstream::out|fstream::app);
-    if(write_title){
-        result << "Bitlen,Base,Batch Size,#Threads,#Comparisons,Time (mus),Throughput/sec" << endl;
-    }
-    result << l << "," << b << "," << batch_size << "," << num_threads << "," << num_cmps
-        << "," << t << "," << (double(num_cmps)/t)*1e6 << endl;
-    result.close();
-    */
-    /******************* Cleanup ****************/
-    /********************************************/
-
 }
 
 #endif //EQUALITY_H__

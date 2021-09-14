@@ -20,7 +20,5 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-//bool allocateLUTs();
-//bool generateLUTs();
 #include "cryptoTools/Common/Defines.h"
 std::uint64_t hashToPosition(uint64_t, osuCrypto::block);

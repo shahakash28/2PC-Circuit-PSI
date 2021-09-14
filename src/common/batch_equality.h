@@ -99,7 +99,6 @@ class BatchEquality {
 		}
 
 		void setLeafMessages(uint64_t* data) {
-			struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
 
 			if(this->party == sci::ALICE) {
     		radixArrSize = batch_size*num_cmps;
@@ -124,7 +123,6 @@ class BatchEquality {
 
 				// Set Leaf OT messages
 				triple_gen1->prg->random_bool((bool*)leaf_eq, batch_size*num_digits*num_cmps);
-				clock_gettime(CLOCK_MONOTONIC, &lomstart);
 				for(int i = 0; i < num_digits; i++) {
 					for(int j = 0; j < num_cmps; j++) {
 						if (i == (num_digits - 1) && (r > 0)){
@@ -142,22 +140,15 @@ class BatchEquality {
 						}
 					}
 				}
-				clock_gettime(CLOCK_MONOTONIC, &lomfinish);
 			}
 
 		}
 
 		void computeLeafOTs()
 		{
-      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
-			clock_gettime(CLOCK_MONOTONIC, &start);
-			 // num_digits * num_cmps
-
-			// Extract radix-digits from data
 
 			if(party == sci::ALICE)
 			{
-				clock_gettime(CLOCK_MONOTONIC, &locstart);
 
 				// Perform Leaf OTs
 #ifdef WAN_EXEC
@@ -190,13 +181,6 @@ class BatchEquality {
 				for(int i = 0; i < num_digits*num_cmps; i++)
 					delete[] leaf_ot_messages[i];
 				delete[] leaf_ot_messages;
-				clock_gettime(CLOCK_MONOTONIC, &locfinish);
-				double total_time = (lomfinish.tv_sec - lomstart.tv_sec);
-				total_time += (lomfinish.tv_nsec - lomstart.tv_nsec) / 1000000000.0;
-
-				total_time = (locfinish.tv_sec - locstart.tv_sec);
-				total_time += (locfinish.tv_nsec - locstart.tv_nsec) / 1000000000.0;
-
 			}
 			else // party = sci::BOB
 			{ //triple_gen1->generate(3-party, triples_std, _16KKOT_to_4OT);
@@ -240,9 +224,6 @@ class BatchEquality {
 				}
 			}
 
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 			/*for(int i=0; i<10; i++) {
 				for(int j=0;j<batch_size; j++) {
 					std::cout<< (int)leaf_eq[j*num_digits*num_cmps+ i] << " ";
@@ -276,24 +257,10 @@ class BatchEquality {
 		 **************************************************************************************************/
 
     void generate_triples() {
-      struct timespec start, finish;
-      clock_gettime(CLOCK_MONOTONIC, &start);
       triple_gen2->generate(3-party, triples_std, _16KKOT_to_4OT);
-      clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
     }
 
 		void traverse_and_compute_ANDs(){
-      struct timespec start, finish, lomstart, lomfinish, locstart, locfinish;
-
-			//if(sci::ALICE) {
-
-			//}
-
-
-
-			clock_gettime(CLOCK_MONOTONIC, &start);
 			//clock_gettime(CLOCK_MONOTONIC, &start);
 			// Combine leaf OT results in a bottom-up fashion
 			int counter_std = 0, old_counter_std = 0;
@@ -307,14 +274,10 @@ class BatchEquality {
 			int old_triple_count=0, triple_count=0;
 
 			for(int i = 1; i < num_digits; i*=2) {
-				//std::cout<<"Level " << i << std::endl;
 				int counter=0;
 				for(int j = 0; j < num_digits and j+i < num_digits; j += 2*i) {
-					//std::cout<<"Pair (" << j << "," << j+1<< ")"<< std::endl;
 					for(int k=0; k < batch_size; k++) {
-						//std::cout<<"Batch "<< k << std::endl;
 						for(int m=0; m < num_cmps; m+=8) {
-							//std::cout<<"Comparison Number "<< m << std::endl;
 							ei[(counter*batch_size*num_cmps + k*num_cmps + m)/8] = triples_std->ai[(triple_count+ counter*batch_size*num_cmps + k*num_cmps + m)/8];
 							fi[(counter*batch_size*num_cmps + k*num_cmps + m)/8] = triples_std->bi[(triple_count+ counter*batch_size*num_cmps + k*num_cmps + m)/8];
 							ei[(counter*batch_size*num_cmps + k*num_cmps + m)/8] ^= sci::bool_to_uint8(leaf_eq + j*num_cmps + k*num_digits*num_cmps + m, 8);
@@ -367,19 +330,6 @@ class BatchEquality {
 				old_triple_count= triple_count;
 			}
 
-			clock_gettime(CLOCK_MONOTONIC, &finish);
-			double total_time = (finish.tv_sec - start.tv_sec);
-  		total_time += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-
-			/*std::cout<<"Some Outputs"<< std::endl;
-
-			for(int i=0; i<num_cmps; i++) {
-				for(int j=0; j<batch_size; j++) {
-					std::cout<<(int)leaf_eq[j*num_digits*num_cmps+i]<< " ";
-				}
-				std::cout<< std::endl;
-			}*/
-
 			//cleanup
 			delete[] ei;
 			delete[] fi;
@@ -387,48 +337,7 @@ class BatchEquality {
 			delete[] f;
 
 		}
-
-		/*void AND_step_1(uint8_t* ei, // evaluates batch of 8 ANDs
-				uint8_t* fi,
-				uint8_t* xi,
-				uint8_t* yi,
-				uint8_t* ai,
-				uint8_t* bi,
-				int num_ANDs) {
-			assert(num_ANDs % 8 == 0);
-			for(int i = 0; i < num_ANDs; i+=8) {
-				ei[i/8] = ai[i/8];
-				fi[i/8] = bi[i/8];
-				ei[i/8] ^= sci::bool_to_uint8(xi+i, 8);
-				fi[i/8] ^= sci::bool_to_uint8(yi+i, 8);
-			}
-		}
-		void AND_step_2(uint8_t* zi, // evaluates batch of 8 ANDs
-				uint8_t* e,
-				uint8_t* f,
-				uint8_t* ei,
-				uint8_t* fi,
-				uint8_t* ai,
-				uint8_t* bi,
-				uint8_t* ci,
-				int num_ANDs)
-		{
-			assert(num_ANDs % 8 == 0);
-			for(int i = 0; i < num_ANDs; i+=8) {
-				uint8_t temp_z;
-				if (party == sci::ALICE)
-					temp_z = e[i/8] & f[i/8];
-				else
-					temp_z = 0;
-				temp_z ^= f[i/8] & ai[i/8];
-				temp_z ^= e[i/8] & bi[i/8];
-				temp_z ^= ci[i/8];
-				sci::uint8_to_bool(zi+i, temp_z, 8);
-			}
-		}*/
 };
-
-
 
 void computeLeafOTsThread(BatchEquality<NetIO>* compare) {
   compare->computeLeafOTs();
@@ -449,65 +358,6 @@ void perform_batch_equality(uint64_t* inputs, BatchEquality<NetIO>* compare, uin
     }
 
     compare->traverse_and_compute_ANDs();
-    /************** Verification ****************/
-    /********************************************/
-   /*
-    switch (party) {
-        case sci::ALICE: {
-            ioArr[0]->send_data(x, 8*num_cmps);
-            ioArr[0]->send_data(z, num_cmps);
-            break;
-        }
-        case sci::BOB: {
-            uint64_t *xi = new uint64_t[num_cmps];
-            uint8_t *zi = new uint8_t[num_cmps];
-            xi = new uint64_t[num_cmps];
-            zi = new uint8_t[num_cmps];
-            ioArr[0]->recv_data(xi, 8*num_cmps);
-            ioArr[0]->recv_data(zi, num_cmps);
-            for(int i = 0; i < num_cmps; i++) {
-                zi[i] ^= z[i];
-                assert(zi[i] == ((xi[i] & mask_l) > (x[i] & mask_l)));
-            }
-            cout << "Secure Comparison Successful" << endl;
-            delete[] xi;
-            delete[] zi;
-            break;
-        }
-    }
-    delete[] x;
-    delete[] z;*/
-
-    /**** Process & Write Benchmarking Data *****/
-    /********************************************/
-    /*
-    string file_addr;
-    switch (party) {
-        case 1: {
-            file_addr = "millionaire-P0.csv";
-            break;
-        }
-        case 2: {
-            file_addr = "millionaire-P1.csv";
-            break;
-        }
-    }
-    bool write_title = true; {
-        fstream result(file_addr.c_str(), fstream::in);
-        if(result.is_open())
-            write_title = false;
-        result.close();
-    }
-    fstream result(file_addr.c_str(), fstream::out|fstream::app);
-    if(write_title){
-        result << "Bitlen,Base,Batch Size,#Threads,#Comparisons,Time (mus),Throughput/sec" << endl;
-    }
-    result << l << "," << b << "," << batch_size << "," << num_threads << "," << num_cmps
-        << "," << t << "," << (double(num_cmps)/t)*1e6 << endl;
-    result.close();
-    */
-    /******************* Cleanup ****************/
-    /********************************************/
 }
 
 #endif //BATCHEQUALITY_H__

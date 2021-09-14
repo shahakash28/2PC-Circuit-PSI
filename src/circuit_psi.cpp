@@ -107,13 +107,6 @@ int main(int argc, char **argv) {
       inputs.push_back(2000*i);
     }
   }
-  /*std::cout<<"***********************************"<<std::endl;
-  std::cout<<"The Input is: ["<<std::endl;
-  for(int i=0;i<100;i++) {
-    std::cout<<inputs[i]<<", ";
-  }
-  std::cout<<"]"<<std::endl;
-  std::cout<<"***********************************"<<std::endl;*/
 
   //Setup Connection
   std::unique_ptr<CSocket> sock = ENCRYPTO::EstablishConnection(context.address, context.port, static_cast<e_role>(context.role));
@@ -152,25 +145,5 @@ int main(int argc, char **argv) {
   for (int i = 0; i < 2; i++) {
       delete ioArr[i];
   }
-
-
-  /*
-  switch(context.psm_type) {
-    case ENCRYPTO::PsiAnalyticsContext::PSM1: {
-
-    }
-    break;
-    case ENCRYPTO::PsiAnalyticsContext::PSM2: {
-
-    }
-    break;
-  }
-
-
-  //auto inputs = ENCRYPTO::GeneratePseudoRandomElements(context.neles, gen_bitlen);
-  ENCRYPTO::run_gcf_tab_psi(inputs, context);
-  std::cout << "PSI circuit successfully executed" << std::endl;
-  PrintTimingsNew(context);
-  */
   return EXIT_SUCCESS;
 }

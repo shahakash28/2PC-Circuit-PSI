@@ -67,14 +67,6 @@ struct PsiAnalyticsContext {
     double hint_transmission;
     double hint_computation;
     double psm_time;
-    double polynomials;
-    double polynomials_transmission;
-    double oprf2;
-    double table_compute;
-    double table_transmission;
-    double aby_setup;
-    double aby_online;
-    double aby_total;
     double total;
   } timings;
 };
