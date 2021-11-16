@@ -16,7 +16,7 @@ Code based on the implementation of 2-Party Circuit-PSI available at \[[encrypto
 mkdir build
 cd build
 cmake ..
-Copy aux/hash/cuckoo/hashing.cpp and aux/hash/cuckoo/hashing.h into extern/HashingTables/cuckoo/hashing
+cp ../aux_hash/* ../extern/HashingTables/cuckoo_hashing/.
 make
 // or make -j for faster compilation
 ```
