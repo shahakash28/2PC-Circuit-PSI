@@ -8,6 +8,8 @@ Code based on the implementation of 2-Party Circuit-PSI available at \[[encrypto
  - libgmp-dev
  - libssl-dev
  - libntl-dev
+ - pkg-config
+ - libglib2.0-dev
 
 ## Compilation
 ```
@@ -20,12 +22,36 @@ make
 ```
 
 ## Run
+Run from `build` directory.
 Example:
 ```
-Server: bin/gcf_psi -r 0 -n 65536 -b 58 -m 5 -y PSM2
-Client: bin/gcf_psi -r 1 -a <server_ip_address> -n 65536 -b 58 -m 5 -y PSM2
+Server: bin/gcf_psi -r 0 -p 31000 -n 65536 -b 58 -m 5 -y PSM2
+Client: bin/gcf_psi -r 1 -a <server_ip_address> -p 31000 -n 65536 -b 58 -m 5 -y PSM2
 ```
-See 'src/circuit_psi.cpp' file for description of the parameters and refer our paper to set the parameters. 
+Description of Parameters:
+```
+-r: role (0: Server/1: Client)
+-a: ip-address
+-p: port number
+-n: number of elements in input set
+-b: bitlength (40+2+log_2(n))
+-m: radix for PSM functionality
+-y: PSM Type (PSM1/PSM2)
+```
+
+## Execution Environment
+The code was tested on Ubuntu 18.04/20.04 and Intel x86_64 architecture.
+
+To create a docker image, find `docker-files/DockerFile` in docker-files folder. Copy and run `docker-files/execute.sh` file in docker image.
+
+```
+cd docker-files
+docker build -t psi-image .
+docker run -it psi-image bash
+#Copy docker-files/execute.sh in docker-image
+chmod +x execute.sh
+./execute.sh
+```
 
 ## Contact
 For any queries, contact Akash Shah (akashshah08 at outlook.com).
