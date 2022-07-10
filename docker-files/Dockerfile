@@ -12,4 +12,4 @@ RUN apt-get -y install libgmp-dev
 RUN apt-get -y install libssl-dev
 RUN apt-get -y install libntl-dev
 RUN apt-get -y install cmake
-COPY execute.sh
+COPY execute.sh .
