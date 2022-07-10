@@ -20,6 +20,7 @@ set(ENABLE_RELIC ON CACHE BOOL "Build relic by default" FORCE)
 set(MULTI PTHREAD CACHE STRING "Build relic with multithreading from pthread" FORCE)
 set(ARITH easy CACHE STRING "Build relic without gmp" FORCE)
 set(WITH "MD;DV;BN;FB;FP;EB;EC;EP" CACHE STRING "Overwrite Relic algorithms in ABY with their superset" FORCE)
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${PROJECT_SOURCE_DIR}/extern/EzPC/SCI/extern/SEAL/native/src/cmake")
 
 find_package(ABY QUIET)
 set(ENCRYPTO_UTILS_BUILD_TESTS OFF CACHE BOOL "Disable tests for the ENCRYPTO utils library" FORCE)
