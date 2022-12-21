@@ -95,6 +95,8 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     value = C_CONST;
   }
 
+  uint8_t* res_shares;
+
 
   if (context.role == CLIENT) {
     std::vector<std::vector<uint64_t>> opprf_values(context.nbins, std::vector<uint64_t>(context.ffuns));
@@ -158,7 +160,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis hint_duration = filter_end_time - filter_start_time;
     context.timings.hint_computation = hint_duration.count();
 
-    uint8_t* res_shares;
+    res_shares = new uint8_t[num_cmps];
     for(int i=0; i<pad; i++) {
         content_of_bins[3*context.nbins+i]=value;
     }
@@ -249,7 +251,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
       //Send table
       sock->Send(table_opprf.data(), context.nbins * ts* sizeof(uint64_t));
 
-      uint8_t* res_shares = new uint8_t[num_cmps];
+      res_shares = new uint8_t[num_cmps];
       for(int i=0; i<pad; i++) {
           content_of_bins[context.nbins+i]=value;
       }
@@ -346,7 +348,7 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis hint_trans = ftrans_end_time - ftrans_start_time;
     context.timings.hint_transmission = hint_trans.count();
 
-    uint8_t* res_shares;
+    res_shares = new uint8_t[num_cmps];
     for(int i=0; i<pad; i++) {
       content_of_bins[context.nbins+i]=value;
     }
@@ -394,9 +396,9 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
       }
 
       //perform_batch_equality(content_of_bins.data(), compare, res_shares);
-      uint8_t* res_shares = new uint8_t[num_cmps];
+      res_shares = new uint8_t[num_cmps];
       perform_equality(actual_contents_of_bins.data(), party, context.bitlen, b, num_cmps, context.address, context.port, res_shares, ioArr, otpackArr);
-    }
+      }
     const auto clock_time_cir_end = std::chrono::system_clock::now();
     const duration_millis cir_duration = clock_time_cir_end - clock_time_cir_start;
     context.timings.psm_time = cir_duration.count();
@@ -404,6 +406,15 @@ void run_circuit_psi(const std::vector<std::uint64_t> &inputs, PsiAnalyticsConte
     const duration_millis total_duration = clock_time_total_end - clock_time_total_start;
     context.timings.total = total_duration.count();
   }
+
+  //Writing resultant shares to file
+  cout<<"Writing resultant shares to File ..."<<endl;
+  ofstream res_file;
+  res_file.open("res_share_P" + to_string(context.role) + ".dat");
+  for(int i=0; i<context.nbins; i++){
+    res_file << res_shares[i] << endl;
+  }
+  res_file.close();
 }
 
 std::unique_ptr<CSocket> EstablishConnection(const std::string &address, uint16_t port,

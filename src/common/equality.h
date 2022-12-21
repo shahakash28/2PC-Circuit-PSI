@@ -78,7 +78,7 @@ class Equality {
 			else this->mask_beta = (1 << beta) - 1;
 			this->mask_r = (1 << r) - 1;
 			this->beta_pow = 1 << beta;
-			total_triples_count = num_triples*num_cmps;
+			total_triples_count = l*num_cmps;
       //total_triples
 			this->triples_std = new Triple(num_triples*num_cmps, true);
 		}

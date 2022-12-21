@@ -260,7 +260,7 @@ class BatchEquality {
       triple_gen2->generate(3-party, triples_std, _16KKOT_to_4OT);
     }
 
-		void traverse_and_compute_ANDs(){
+		void traverse_and_compute_ANDs(uint8_t* res_shares){
 			//clock_gettime(CLOCK_MONOTONIC, &start);
 			// Combine leaf OT results in a bottom-up fashion
 			int counter_std = 0, old_counter_std = 0;
@@ -330,6 +330,13 @@ class BatchEquality {
 				old_triple_count= triple_count;
 			}
 
+			for(int i=0; i<num_cmps; i++) {
+				res_shares[i]=0;
+				for(int j=0; j<batch_size; j++) {
+					res_shares[i] = res_shares[i] ^ leaf_eq[j*num_digits*num_cmps+i];
+				}
+			}
+
 			//cleanup
 			delete[] ei;
 			delete[] fi;
@@ -348,7 +355,6 @@ void generate_triples_thread(BatchEquality<NetIO>* compare) {
 }
 
 void perform_batch_equality(uint64_t* inputs, BatchEquality<NetIO>* compare, uint8_t* res_shares) {
-
     std::thread cmp_threads[2];
 		compare->setLeafMessages(inputs);
     cmp_threads[0] = std::thread(computeLeafOTsThread, compare);
@@ -357,7 +363,7 @@ void perform_batch_equality(uint64_t* inputs, BatchEquality<NetIO>* compare, uin
       cmp_threads[i].join();
     }
 
-    compare->traverse_and_compute_ANDs();
+    compare->traverse_and_compute_ANDs(res_shares);
 }
 
 #endif //BATCHEQUALITY_H__
